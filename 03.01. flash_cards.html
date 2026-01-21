@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ETL & Data Pipelines Flashcards</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border-radius: 1rem;
+            cursor: pointer;
+        }
+
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            border-radius: 1rem;
+            background-color: white;
+            border: 1px solid #e5e7eb;
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+            background-color: #f0f9ff; /* Light blue tint for back */
+            border-color: #bae6fd;
+        }
+
+        .no-select {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        /* Hide scrollbar for IE, Edge and Firefox */
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+    </style>
+</head>
+<body class="text-gray-800 p-4">
+
+    <!-- Header -->
+    <header class="mb-8 text-center">
+        <h1 class="text-3xl font-bold text-indigo-600 mb-2">ETL & Data Pipelines</h1>
+        <p class="text-gray-500 text-sm">Tap card to flip • Use arrows to navigate</p>
+    </header>
+
+    <!-- Main Card Container -->
+    <div class="relative w-full max-w-xl h-80 sm:h-96 perspective-1000 mx-auto mb-8 group">
+        <div id="flashcard" class="card w-full h-full" onclick="toggleFlip()">
+            <div class="card-inner">
+                <!-- Front -->
+                <div class="card-face card-front">
+                    <span class="absolute top-4 left-4 text-xs font-semibold text-indigo-400 tracking-wider uppercase">Question</span>
+                    <p id="front-text" class="text-xl sm:text-2xl font-semibold text-gray-800 leading-relaxed px-4">
+                        <!-- Content injected via JS -->
+                    </p>
+                    <div class="absolute bottom-4 text-gray-400 text-xs flex items-center gap-1 animate-pulse">
+                        <span>Tap to flip</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Back -->
+                <div class="card-face card-back">
+                    <span class="absolute top-4 left-4 text-xs font-semibold text-sky-500 tracking-wider uppercase">Answer</span>
+                    <p id="back-text" class="text-lg sm:text-xl text-gray-700 leading-relaxed px-4">
+                        <!-- Content injected via JS -->
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="flex items-center gap-4 sm:gap-8 w-full max-w-xl justify-center mb-6">
+        <button onclick="prevCard()" class="p-3 rounded-full bg-white shadow-md hover:bg-gray-50 active:bg-gray-100 text-indigo-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed" id="prev-btn" aria-label="Previous Card">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+        </button>
+
+        <div class="flex flex-col items-center min-w-[100px]">
+            <span id="counter" class="text-lg font-bold text-gray-700 font-mono">1 / 25</span>
+            <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                <div id="progress-bar" class="bg-indigo-600 h-1.5 rounded-full transition-all duration-300" style="width: 4%"></div>
+            </div>
+        </div>
+
+        <button onclick="nextCard()" class="p-3 rounded-full bg-white shadow-md hover:bg-gray-50 active:bg-gray-100 text-indigo-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed" id="next-btn" aria-label="Next Card">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+        </button>
+    </div>
+
+    <!-- Reset / Shuffle -->
+    <div class="flex gap-2">
+        <button onclick="resetCards()" class="text-sm text-gray-500 hover:text-indigo-600 font-medium px-3 py-1 rounded hover:bg-white transition-colors">
+            Reset
+        </button>
+        <button onclick="shuffleCards()" class="text-sm text-gray-500 hover:text-indigo-600 font-medium px-3 py-1 rounded hover:bg-white transition-colors flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Shuffle
+        </button>
+    </div>
+
+    <script>
+        // Data from the ETL Lecture
+        const originalData = [
+            {
+                front: "Definition of ETL",
+                back: "Extract, Transform, Load: A traditional approach where data is cleaned and transformed in a staging area *before* being loaded into the data warehouse."
+            },
+            {
+                front: "Definition of ELT",
+                back: "Extract, Load, Transform: A modern approach where raw data is loaded directly into the warehouse and transformed there using the warehouse's processing power."
+            },
+            {
+                front: "Primary difference between ETL and ELT",
+                back: "The location and timing of the transformation step. ETL transforms on a separate server before loading; ELT transforms inside the warehouse after loading."
+            },
+            {
+                front: "Kitchen analogy for ETL",
+                back: "Like a restaurant kitchen where chefs fully prepare and plate ingredients (raw data) before serving them to customers (analysts)."
+            },
+            {
+                front: "Salad Bar analogy for ELT",
+                back: "Like a salad bar where raw ingredients are displayed, and customers (analysts) prepare their meals according to their preferences."
+            },
+            {
+                front: "Why ELT is preferred for cloud warehouses",
+                back: "It leverages the Massive Parallel Processing (MPP) capabilities of cloud warehouses (like Snowflake or BigQuery) for faster transformations and scalability."
+            },
+            {
+                front: "Batch Ingestion",
+                back: "Processing data in large chunks at scheduled intervals (e.g., daily or weekly). High latency but resource-efficient."
+            },
+            {
+                front: "Streaming Ingestion",
+                back: "Processing data continuously as it is generated (e.g., clickstreams, IoT). Low latency but higher complexity and cost."
+            },
+            {
+                front: "Hybrid Ingestion Approach",
+                back: "Using streaming for critical operational data (e.g., fraud detection) and batch processing for historical analytical data (e.g., monthly reports)."
+            },
+            {
+                front: "Staging Area",
+                back: "An intermediate storage zone between source systems and the data warehouse used for cleaning, validating, and transforming data."
+            },
+            {
+                front: "Data Cleaning: Deduplication",
+                back: "The process of identifying and removing duplicate records (e.g., merging 'John Smith' and 'J. Smith') to ensure data integrity."
+            },
+            {
+                front: "Data Cleaning: Standardization",
+                back: "Converting data into consistent formats, such as formatting all dates to ISO 8601 (YYYY-MM-DD) or phone numbers to a specific pattern."
+            },
+            {
+                front: "Transient Staging",
+                back: "A staging pattern where tables are deleted after a successful load to reduce storage costs, though it offers a limited audit trail."
+            },
+            {
+                front: "Data Orchestration",
+                back: "The automated coordination of data workflows, managing task dependencies, scheduling, error handling, and parallelization."
+            },
+            {
+                front: "Apache Airflow",
+                back: "The industry-standard open-source platform for programmatically authoring, scheduling, and monitoring data workflow pipelines."
+            },
+            {
+                front: "DAG (Directed Acyclic Graph)",
+                back: "A collection of all the tasks in a workflow, organized in a way that reflects their relationships and dependencies (A must happen before B)."
+            },
+            {
+                front: "Idempotency in Data Pipelines",
+                back: "A property where re-running a task produces the same result as running it once. This is critical for handling retries safely."
+            },
+            {
+                front: "SQL vs. Python for ELT",
+                back: "SQL is generally preferred for ELT bulk transformations inside a warehouse due to speed and native optimization, while Python is used for complex logic or API calls."
+            },
+            {
+                front: "Common Batch Ingestion Tools",
+                back: "Apache Spark, AWS Glue, Talend."
+            },
+            {
+                front: "Common Streaming Ingestion Tools",
+                back: "Apache Kafka, Amazon Kinesis, Apache Flink."
+            },
+            {
+                front: "Why SQL is 'Declarative'",
+                back: "You specify *what* result you want (e.g., SELECT *), and the database engine figures out the most efficient way (*how*) to get it."
+            },
+            {
+                front: "Benefits of Orchestration",
+                back: "Dependency management, automated scheduling, error handling (retries), parallel execution, and centralized monitoring."
+            },
+            {
+                front: "Latency",
+                back: "The delay between when data is generated and when it is available for analysis. Streaming has low latency; Batch has high latency."
+            },
+            {
+                front: "Data Enrichment",
+                back: "Adding value to data by merging it with external sources, such as appending demographic info to a customer record."
+            },
+            {
+                front: "Airflow Operator",
+                back: "A template for a specific type of task in Airflow, such as `PythonOperator` for Python code or `BashOperator` for shell commands."
+            }
+        ];
+
+        let cards = [...originalData];
+        let currentIndex = 0;
+        let isFlipped = false;
+
+        const flashcardEl = document.getElementById('flashcard');
+        const frontTextEl = document.getElementById('front-text');
+        const backTextEl = document.getElementById('back-text');
+        const counterEl = document.getElementById('counter');
+        const progressBarEl = document.getElementById('progress-bar');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+
+        function renderCard() {
+            // Unflip first if looking at back
+            if (isFlipped) {
+                flashcardEl.classList.remove('flipped');
+                isFlipped = false;
+                // Wait for animation to finish before changing text
+                setTimeout(() => updateContent(), 200);
+            } else {
+                updateContent();
+            }
+        }
+
+        function updateContent() {
+            const currentCard = cards[currentIndex];
+            frontTextEl.textContent = currentCard.front;
+            backTextEl.textContent = currentCard.back;
+            
+            // Update counter
+            counterEl.textContent = `${currentIndex + 1} / ${cards.length}`;
+            
+            // Update progress bar
+            const progress = ((currentIndex + 1) / cards.length) * 100;
+            progressBarEl.style.width = `${progress}%`;
+
+            // Update buttons state
+            prevBtn.disabled = currentIndex === 0;
+            nextBtn.disabled = currentIndex === cards.length - 1;
+        }
+
+        function toggleFlip() {
+            flashcardEl.classList.toggle('flipped');
+            isFlipped = !isFlipped;
+        }
+
+        function nextCard() {
+            if (currentIndex < cards.length - 1) {
+                currentIndex++;
+                renderCard();
+            }
+        }
+
+        function prevCard() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                renderCard();
+            }
+        }
+
+        function resetCards() {
+            cards = [...originalData];
+            currentIndex = 0;
+            renderCard();
+        }
+
+        function shuffleCards() {
+            for (let i = cards.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [cards[i], cards[j]] = [cards[j], cards[i]];
+            }
+            currentIndex = 0;
+            renderCard();
+        }
+
+        // Keyboard Navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                if (isFlipped) {
+                    nextCard();
+                } else {
+                    toggleFlip();
+                }
+            } else if (e.key === 'ArrowLeft') {
+                prevCard();
+            } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                toggleFlip();
+            }
+        });
+
+        // Initialize
+        renderCard();
+
+    </script>
+</body>
+</html>
+
+
+

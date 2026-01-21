@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Warehousing & Management | Interactive Course Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .chart-container { 
+            position: relative; 
+            width: 100%; 
+            max-width: 600px; 
+            margin-left: auto; 
+            margin-right: auto; 
+            height: 300px; 
+            max-height: 400px; 
+        } 
+        @media (min-width: 768px) { 
+            .chart-container { height: 350px; } 
+        }
+        .module-btn.active {
+            background-color: #f5f5f4; 
+            border-left: 4px solid #0d9488;
+            color: #115e59;
+            font-weight: 600;
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+    <!-- Chosen Palette: "Warm Neutral Tech" - Stone (Backgrounds), Teal (Primary/Accents), Slate (Text) -->
+    <!-- Application Structure Plan: 
+         1. Hero Section: High-level metrics and course description to orient the user.
+         2. "The Tech Stack" (Interactive Grid): Visualizing the tools used, allowing users to hover/click for context. 
+         3. "Curriculum Journey" (Split View): An interactive timeline where users select a module on the left to view detailed goals and topics on the right. This prevents information overload compared to a long scrolling list.
+         4. "Skill Distribution" (Radar Chart): Visualizes the emphasis of the course (e.g., Modeling vs. BI vs. Cloud) to help students understand the learning focus.
+         5. "Assessments" (Donut Chart): Breaks down how students are evaluated.
+         6. "Outcomes" (Cards): A grid of learning outcomes for quick scanning.
+         Why this structure? It breaks the linear report into functional areas (Tools, Schedule, Skills, Grades), making it easier for a prospective student to evaluate the course fit.
+    -->
+    <!-- Visualization & Content Choices:
+         1. Curriculum: Interactive List -> Detail View. Goal: Organize. Method: JS DOM manipulation. Justification: Keeps 8 modules accessible without scrolling 8 pages.
+         2. Skill Distribution: Radar Chart. Goal: Inform/Relationships. Method: Chart.js. Justification: Shows the multi-dimensional nature of the course (Technical vs Theoretical).
+         3. Assessment Weights: Donut Chart. Goal: Inform. Method: Chart.js. Justification: Visualizes the "pie" of the final grade (implied equal weights for visual balance).
+         4. Tech Stack: CSS Grid Cards. Goal: Inform. Method: HTML/Tailwind. Justification: Logos/Names are distinct entities; a grid is best for scanning.
+         NO SVG graphics used. NO Mermaid JS used.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="bg-stone-50 text-slate-800 antialiased selection:bg-teal-100 selection:text-teal-900">
+
+    <!-- Navigation -->
+    <nav class="sticky top-0 z-50 bg-stone-50/90 backdrop-blur-md border-b border-stone-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex-shrink-0 flex items-center gap-2">
+                    <span class="text-2xl">💾</span>
+                    <span class="font-bold text-xl tracking-tight text-slate-900">DataWarehouse<span class="text-teal-600">.UnderGrad</span></span>
+                </div>
+                <div class="hidden md:flex space-x-8">
+                    <button onclick="scrollToSection('overview')" class="text-slate-600 hover:text-teal-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">Overview</button>
+                    <button onclick="scrollToSection('curriculum')" class="text-slate-600 hover:text-teal-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">Curriculum</button>
+                    <button onclick="scrollToSection('skills')" class="text-slate-600 hover:text-teal-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">Skills & Tools</button>
+                    <button onclick="scrollToSection('assessment')" class="text-slate-600 hover:text-teal-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">Assessment</button>
+                </div>
+                <!-- Mobile menu button stub -->
+                <div class="md:hidden">
+                    <button class="text-slate-600 hover:text-teal-600 p-2">☰</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div id="overview" class="relative overflow-hidden pt-12 pb-16 lg:pt-20 lg:pb-24">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center max-w-3xl mx-auto">
+                <div class="inline-flex items-center px-3 py-1 rounded-full bg-teal-100 text-teal-800 text-xs font-semibold uppercase tracking-wide mb-4">
+                    Bachelor's Level Program
+                </div>
+                <h1 class="text-4xl tracking-tight font-extrabold text-slate-900 sm:text-5xl md:text-6xl mb-6">
+                    Master the Art of <span class="text-teal-600">Data Warehousing</span>
+                </h1>
+                <p class="mt-4 max-w-2xl mx-auto text-xl text-slate-600 mb-10">
+                    From raw ingestion to actionable intelligence. Learn to architect, build, and optimize modern data pipelines using industry-standard tools.
+                </p>
+                
+                <!-- Quick Stats Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-stone-200 hover:border-teal-300 transition-colors">
+                        <div class="text-3xl mb-1">📚</div>
+                        <div class="font-bold text-2xl text-slate-800">8</div>
+                        <div class="text-xs text-slate-500 uppercase tracking-wide">Modules</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-stone-200 hover:border-teal-300 transition-colors">
+                        <div class="text-3xl mb-1">💻</div>
+                        <div class="font-bold text-2xl text-slate-800">Online</div>
+                        <div class="text-xs text-slate-500 uppercase tracking-wide">Delivery</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-stone-200 hover:border-teal-300 transition-colors">
+                        <div class="text-3xl mb-1">🛠️</div>
+                        <div class="font-bold text-2xl text-slate-800">10+</div>
+                        <div class="text-xs text-slate-500 uppercase tracking-wide">Tools</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-stone-200 hover:border-teal-300 transition-colors">
+                        <div class="text-3xl mb-1">🎓</div>
+                        <div class="font-bold text-2xl text-slate-800">Capstone</div>
+                        <div class="text-xs text-slate-500 uppercase tracking-wide">Project</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-24">
+
+        <!-- Curriculum Section -->
+        <section id="curriculum" class="scroll-mt-24">
+            <div class="mb-10 text-center md:text-left">
+                <h2 class="text-3xl font-bold text-slate-900 mb-4">Curriculum Journey</h2>
+                <p class="text-lg text-slate-600 max-w-3xl">
+                    Explore the 8-module progression designed to take you from foundational concepts to building a full-scale cloud data warehouse. Click on a module to view its specific learning goals and topics.
+                </p>
+            </div>
+
+            <div class="flex flex-col lg:flex-row gap-8 bg-white rounded-2xl shadow-xl overflow-hidden border border-stone-200">
+                <!-- Module Navigation (Left) -->
+                <div class="lg:w-1/3 bg-stone-50 border-r border-stone-200 overflow-y-auto max-h-[600px]">
+                    <div class="p-4 border-b border-stone-200 bg-stone-100 sticky top-0">
+                        <h3 class="font-semibold text-slate-700">Course Modules</h3>
+                    </div>
+                    <div id="moduleList" class="divide-y divide-stone-200">
+                        <!-- JS populated items -->
+                    </div>
+                </div>
+
+                <!-- Module Details (Right) -->
+                <div class="lg:w-2/3 p-8 flex flex-col justify-center min-h-[400px]">
+                    <div id="moduleDisplay" class="fade-in">
+                        <!-- JS populated content -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Focus Areas & Tools Section -->
+        <section id="skills" class="scroll-mt-24">
+            <div class="mb-10">
+                <h2 class="text-3xl font-bold text-slate-900 mb-4">Focus Areas & Technology Stack</h2>
+                <p class="text-lg text-slate-600 max-w-3xl">
+                    This course balances theoretical modeling with practical engineering. Analyze the distribution of skills below and explore the industry-standard tools you will master.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+                
+                <!-- Radar Chart Container -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+                    <h3 class="text-xl font-bold text-slate-800 mb-6 flex items-center">
+                        <span class="bg-teal-100 text-teal-700 p-2 rounded-lg mr-3">📊</span> 
+                        Competency Distribution
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="skillsRadar"></canvas>
+                    </div>
+                    <p class="text-sm text-slate-500 mt-4 text-center italic">
+                        Relative emphasis on core data warehousing competencies based on module content.
+                    </p>
+                </div>
+
+                <!-- Tools Grid -->
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-6 flex items-center">
+                        <span class="bg-teal-100 text-teal-700 p-2 rounded-lg mr-3">🛠️</span> 
+                        The Stack
+                    </h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4" id="toolsGrid">
+                        <!-- JS populated -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Assessment Section -->
+        <section id="assessment" class="scroll-mt-24">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center bg-stone-900 rounded-3xl p-8 lg:p-12 text-stone-100">
+                <div>
+                    <h2 class="text-3xl font-bold mb-4 text-white">How You'll Be Assessed</h2>
+                    <p class="text-stone-300 mb-8 text-lg">
+                        We believe in learning by doing. While quizzes ensure you grasp the theory, the majority of your engagement involves hands-on coding, pipeline construction, and a final simulation of a real-world scenario.
+                    </p>
+                    <ul class="space-y-4">
+                        <li class="flex items-start">
+                            <span class="text-teal-400 mr-3 mt-1">✓</span>
+                            <div>
+                                <strong class="text-white block">Continuous Feedback</strong>
+                                <span class="text-stone-400 text-sm">Weekly quizzes to check theoretical understanding.</span>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-teal-400 mr-3 mt-1">✓</span>
+                            <div>
+                                <strong class="text-white block">Practical Application</strong>
+                                <span class="text-stone-400 text-sm">SQL exercises and mini-projects for every module.</span>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-teal-400 mr-3 mt-1">✓</span>
+                            <div>
+                                <strong class="text-white block">Capstone Excellence</strong>
+                                <span class="text-stone-400 text-sm">Build a full end-to-end data warehouse pipeline.</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="bg-stone-800/50 p-6 rounded-2xl border border-stone-700">
+                    <div class="chart-container">
+                        <canvas id="assessmentDonut"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Learning Outcomes Section -->
+        <section id="outcomes" class="pb-12">
+            <h2 class="text-3xl font-bold text-slate-900 mb-8 text-center">Learning Outcomes</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="outcomesGrid">
+                <!-- JS populated -->
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-stone-100 border-t border-stone-200 py-12">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <!-- Disclaimer Section added per request -->
+            <div class="mb-6 border-b border-stone-200 pb-6 max-w-3xl mx-auto">
+                 <p class="text-xs text-slate-400 mb-2">
+                    <strong>Disclaimer:</strong> This course material is the intellectual property of the creator. Any reproduction or redistribution without permission is prohibited.
+                </p>
+                <p class="text-xs text-slate-400">
+                    All third-party trademarks, logos, and software names referenced herein (including but not limited to Snowflake, Tableau, Power BI, AWS) are the property of their respective owners. They are used in this educational resource for demonstrative and pedagogical purposes only, under the principles of fair use. No endorsement or official affiliation is implied.
+                </p>
+            </div>
+
+            <p class="text-slate-500 flex justify-center items-center gap-2">
+                <img src="cyber_soho.png" alt="Cyber Soho" style="height:32px;">
+                <span>&copy; 2026 Course of Data Warehousing and Management</span>
+            </p>
+            <p class="text-sm text-slate-400 mt-2">Designed for Undergraduate Education</p>
+        </div>
+    </footer>
+
+    <script>
+        // --- DATA STORE ---
+        const courseData = {
+            modules: [
+                {
+                    id: 1,
+                    title: "Foundations of Data Warehousing",
+                    desc: "Introduction to the core architecture, modeling, and governance principles.",
+                    topics: ["Introduction to Data Warehousing", "Architecture", "Data Modeling for Warehousing", "ETL and Ingestion Pipelines", "Data Storage & Optimization", "Building ETL Pipeline", "Governance & Security"]
+                },
+                {
+                    id: 2,
+                    title: "Data Modeling and Warehouse Design",
+                    goal: "Learn how to model data for warehousing using dimensional techniques.",
+                    topics: ["Star, snowflake, and galaxy schemas", "Fact vs. dimension tables", "Slowly Changing Dimensions (SCD)", "ER diagrams and logical/physical design", "Surrogate keys and normalization"]
+                },
+                {
+                    id: 3,
+                    title: "ETL and Data Pipelines",
+                    goal: "Design and implement robust ETL pipelines.",
+                    topics: ["ETL vs ELT", "SQL transformations", "Data ingestion (batch and streaming)", "Data staging and cleaning", "Orchestration tools (Airflow, dbt basics)"]
+                },
+                {
+                    id: 4,
+                    title: "Data Quality and Governance",
+                    goal: "Ensure data integrity, lineage, and compliance in warehouse systems.",
+                    topics: ["Data validation, profiling, and cleansing", "Master Data Management (MDM)", "Data lineage and auditing", "Metadata management", "Data privacy (GDPR, HIPAA)"]
+                },
+                {
+                    id: 5,
+                    title: "BI, Reporting, and Visualization",
+                    goal: "Analyze and communicate data insights from the warehouse.",
+                    topics: ["Connecting BI tools (Power BI, Tableau)", "Building dashboards and KPIs", "Aggregation, filtering, and drill-down", "Static vs. interactive reports"]
+                },
+                {
+                    id: 6,
+                    title: "Optimization and Performance",
+                    goal: "Improve speed and scalability of warehouse queries and storage.",
+                    topics: ["Indexing, Partitioning, Query Optimization", "Materialized Views", "Caching and Cost Optimization in the Cloud"]
+                },
+                {
+                    id: 7,
+                    title: "Modern Cloud Data Warehousing",
+                    goal: "Explore scalable, cloud-native warehouse solutions.",
+                    topics: ["Cloud Platforms and Serverless Architectures", "Data Lakes, Storage Integration, and Cost Models"]
+                },
+                {
+                    id: 8,
+                    title: "Final Project and Capstone",
+                    goal: "Apply all skills to build an end-to-end data warehouse solution.",
+                    topics: ["Capstone Overview and Project Design", "Peer Review and Presentation Guidelines"]
+                }
+            ],
+            tools: [
+                { name: "SQL", category: "Language", icon: "⌨️" },
+                { name: "PostgreSQL", category: "Database", icon: "🐘" },
+                { name: "MySQL", category: "Database", icon: "🐬" },
+                { name: "dbt", category: "Transformation", icon: "🔄" },
+                { name: "Apache Airflow", category: "Orchestration", icon: "🌬️" },
+                { name: "Snowflake", category: "Cloud Warehouse", icon: "❄️" },
+                { name: "Power BI", category: "Visualization", icon: "📊" },
+                { name: "Tableau", category: "Visualization", icon: "📈" },
+                { name: "BigQuery", category: "Cloud Warehouse", icon: "🔎" },
+                { name: "GitHub", category: "Version Control", icon: "🐙" },
+                { name: "Lucidchart", category: "Design", icon: "📐" }
+            ],
+            outcomes: [
+                "Explain warehouse purpose & components",
+                "Model data using dimensional techniques",
+                "Design ETL processes with SQL/Automation",
+                "Evaluate data quality & governance",
+                "Query & optimize data retrieval",
+                "Compare traditional vs cloud solutions",
+                "Develop dashboards & reports",
+                "Collaborate using Git & Documentation"
+            ]
+        };
+
+        // --- UI RENDER LOGIC ---
+
+        function init() {
+            renderModuleList();
+            renderModuleDetail(0); // Default to first module
+            renderTools();
+            renderOutcomes();
+            initCharts();
+        }
+
+        // 1. Module Navigation & Detail View
+        function renderModuleList() {
+            const listEl = document.getElementById('moduleList');
+            courseData.modules.forEach((mod, index) => {
+                const btn = document.createElement('button');
+                btn.className = `module-btn w-full text-left px-6 py-4 border-l-4 border-transparent hover:bg-stone-50 transition-all duration-200 flex items-center justify-between group`;
+                btn.onclick = () => {
+                    document.querySelectorAll('.module-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    renderModuleDetail(index);
+                };
+                if (index === 0) btn.classList.add('active'); // Set first as active initially
+                
+                btn.innerHTML = `
+                    <div>
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 block group-hover:text-teal-500">Module ${mod.id}</span>
+                        <h4 class="font-medium text-slate-800">${mod.title}</h4>
+                    </div>
+                    <span class="text-slate-300 group-hover:text-teal-500">→</span>
+                `;
+                listEl.appendChild(btn);
+            });
+        }
+
+        function renderModuleDetail(index) {
+            const mod = courseData.modules[index];
+            const display = document.getElementById('moduleDisplay');
+            
+            // Re-trigger animation
+            display.classList.remove('fade-in');
+            void display.offsetWidth; // trigger reflow
+            display.classList.add('fade-in');
+
+            let contentHTML = `
+                <div class="mb-2 text-teal-600 font-bold uppercase tracking-wide text-sm">Module ${mod.id}</div>
+                <h3 class="text-3xl font-bold text-slate-900 mb-6">${mod.title}</h3>
+            `;
+
+            if (mod.goal || mod.desc) {
+                contentHTML += `
+                    <div class="bg-teal-50 border border-teal-100 rounded-lg p-4 mb-8">
+                        <h5 class="text-teal-900 font-semibold mb-2 flex items-center">
+                            <span class="mr-2">🎯</span> Goal
+                        </h5>
+                        <p class="text-teal-800">${mod.goal || mod.desc}</p>
+                    </div>
+                `;
+            }
+
+            contentHTML += `
+                <h4 class="font-semibold text-slate-800 mb-4 text-lg">Topics Covered</h4>
+                <div class="grid grid-cols-1 gap-3">
+            `;
+
+            mod.topics.forEach(topic => {
+                contentHTML += `
+                    <div class="flex items-start">
+                        <span class="text-teal-500 mr-3 mt-1.5 text-xs">●</span>
+                        <span class="text-slate-600">${topic}</span>
+                    </div>
+                `;
+            });
+            
+            // Added check for Module 3 to insert specific links and divider
+            if (mod.id === 3) {
+                 contentHTML += `
+                    <div class="my-2 border-t border-stone-200"></div>
+                    <div class="flex items-start">
+                        <span class="text-teal-500 mr-3 mt-1.5 text-xs">●</span>
+                        <span class="text-slate-600"><a href="03. etl-andd_pipelines.html" target="_blank" class="text-teal-600 hover:underline">Lecture Access</a></span>
+                    </div>
+                    <div class="flex items-start">
+                        <span class="text-teal-500 mr-3 mt-1.5 text-xs">●</span>
+                        <span class="text-slate-600"><a href="03.01. flash_cards.html" target="_blank" class="text-teal-600 hover:underline">Flash Cards</a></span>
+                    </div>
+                    <div class="flex items-start">
+                        <span class="text-teal-500 mr-3 mt-1.5 text-xs">●</span>
+                        <span class="text-slate-600"><a href="https://drive.proton.me/urls/HKFPCXX080#0FyaQMQhK6Xk" target="_blank" class="text-teal-600 hover:underline">Extra Access</a></span>
+                    </div>
+                 `;
+            }
+
+            contentHTML += `</div>`;
+            display.innerHTML = contentHTML;
+        }
+
+        // 2. Tools Grid
+        function renderTools() {
+            const grid = document.getElementById('toolsGrid');
+            courseData.tools.forEach(tool => {
+                const el = document.createElement('div');
+                el.className = 'bg-white p-4 rounded-lg border border-stone-100 shadow-sm hover:shadow-md hover:border-teal-200 transition-all flex items-center space-x-3 cursor-default group';
+                el.innerHTML = `
+                    <div class="text-2xl group-hover:scale-110 transition-transform">${tool.icon}</div>
+                    <div>
+                        <div class="font-bold text-slate-800 text-sm">${tool.name}</div>
+                        <div class="text-xs text-slate-400">${tool.category}</div>
+                    </div>
+                `;
+                grid.appendChild(el);
+            });
+        }
+
+        // 3. Outcomes Grid
+        function renderOutcomes() {
+            const grid = document.getElementById('outcomesGrid');
+            courseData.outcomes.forEach((outcome, i) => {
+                const el = document.createElement('div');
+                el.className = 'bg-white p-6 rounded-xl shadow-sm border border-stone-200 hover:border-teal-400 transition-colors';
+                el.innerHTML = `
+                    <div class="text-teal-100 font-bold text-5xl absolute -mt-4 -ml-2 opacity-50 z-0 select-none">${i+1}</div>
+                    <p class="relative z-10 text-slate-700 font-medium pt-4">${outcome}</p>
+                `;
+                grid.appendChild(el);
+            });
+        }
+
+        // 4. Charts
+        function initCharts() {
+            // Radar Chart: Competency Distribution
+            const radarCtx = document.getElementById('skillsRadar').getContext('2d');
+            new Chart(radarCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['Data Modeling', 'ETL/Pipelines', 'SQL/Querying', 'Governance', 'BI/Reporting', 'Cloud Infra'],
+                    datasets: [{
+                        label: 'Curriculum Emphasis',
+                        data: [90, 85, 80, 70, 60, 50],
+                        fill: true,
+                        backgroundColor: 'rgba(13, 148, 136, 0.2)', // teal-600 low opacity
+                        borderColor: 'rgb(13, 148, 136)',
+                        pointBackgroundColor: 'rgb(13, 148, 136)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgb(13, 148, 136)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: '#e7e5e4' }, // stone-200
+                            grid: { color: '#e7e5e4' },
+                            pointLabels: {
+                                font: { size: 12, family: 'Inter' },
+                                color: '#475569' // slate-600
+                            },
+                            ticks: { display: false, max: 100 }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+
+            // Donut Chart: Assessment
+            const donutCtx = document.getElementById('assessmentDonut').getContext('2d');
+            new Chart(donutCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Weekly Quizzes', 'Practical SQL Exercises', 'Mini Projects', 'Capstone Project'],
+                    datasets: [{
+                        data: [20, 25, 25, 30], // Mock weights for visualization
+                        backgroundColor: [
+                            '#f5f5f4', // stone-100 (light)
+                            '#5eead4', // teal-300
+                            '#2dd4bf', // teal-400
+                            '#0d9488'  // teal-600 (dark/main)
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#e7e5e4', // stone-200 for dark bg
+                                font: { family: 'Inter', size: 11 },
+                                boxWidth: 12,
+                                padding: 20
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Utils
+        function scrollToSection(id) {
+            document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', init);
+
+    </script>
+</body>
+</html>

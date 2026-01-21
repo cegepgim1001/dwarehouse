@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 3: ETL and Data Pipelines | Cyber.SoHo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <style>
+        /* SOLARIZED COLOR PALETTE DEFINITIONS */
+        :root {
+            /* Solarized Base */
+            --base03: #002b36;
+            --base02: #073642;
+            --base01: #586e75;
+            --base00: #657b83;
+            --base0: #839496;
+            --base1: #93a1a1;
+            --base2: #eee8d5;
+            --base3: #fdf6e3;
+            /* Accents */
+            --yellow: #b58900;
+            --orange: #cb4b16;
+            --red: #dc322f;
+            --magenta: #d33682;
+            --violet: #6c71c4;
+            --blue: #268bd2;
+            --cyan: #2aa198;
+            --green: #859900;
+        }
+
+        /* THEME CONFIGURATION */
+        /* Light Theme (Default) */
+        body.solarized-light {
+            background-color: var(--base3);
+            color: var(--base00);
+        }
+        .solarized-light .bg-primary { background-color: var(--base2); }
+        .solarized-light .bg-secondary { background-color: var(--base3); }
+        .solarized-light .border-theme { border-color: var(--base1); }
+        .solarized-light .text-primary { color: var(--base01); }
+        .solarized-light .sidebar-active { background-color: var(--base2); border-left: 4px solid var(--orange); font-weight: bold; }
+        .solarized-light .code-bg { background-color: var(--base2); border: 1px solid var(--base1); }
+
+        /* Dark Theme */
+        body.solarized-dark {
+            background-color: var(--base03);
+            color: var(--base0);
+        }
+        .solarized-dark .bg-primary { background-color: var(--base02); }
+        .solarized-dark .bg-secondary { background-color: var(--base03); }
+        .solarized-dark .border-theme { border-color: var(--base01); }
+        .solarized-dark .text-primary { color: var(--base1); }
+        .solarized-dark .sidebar-active { background-color: var(--base02); border-left: 4px solid var(--cyan); font-weight: bold; }
+        .solarized-dark .code-bg { background-color: var(--base02); border: 1px solid var(--base01); }
+
+        /* Common Utilities */
+        .solarized-link { color: var(--blue); text-decoration: underline; transition: color 0.2s; }
+        .solarized-link:hover { color: var(--orange); }
+        
+        .code-console { font-family: 'Courier New', Courier, monospace; }
+        
+        /* Flashcard Styles */
+        .flashcard {
+            perspective: 1000px;
+            height: 120px;
+            cursor: pointer;
+        }
+        .flashcard-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .flashcard:hover .flashcard-inner {
+            transform: rotateY(180deg);
+        }
+        .flashcard-front, .flashcard-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .flashcard-back {
+            transform: rotateY(180deg);
+            background-color: var(--blue);
+            color: white;
+        }
+
+        /* SVG Animations */
+        @keyframes flowRight {
+            0% { transform: translateX(0); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateX(300px); opacity: 0; }
+        }
+        .animate-flow {
+            animation: flowRight 2s infinite linear;
+            display: none; /* Hidden by default, activated by JS */
+        }
+        
+        @keyframes spinGear {
+            from { transform: rotate(0deg); transform-origin: center; }
+            to { transform: rotate(360deg); transform-origin: center; }
+        }
+        .animate-spin-slow {
+            animation: spinGear 4s infinite linear;
+            display: none;
+        }
+
+        @keyframes dropData {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(150px); opacity: 0; }
+        }
+        .animate-drop {
+            animation: dropData 1s infinite ease-in;
+            display: none;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--base02); }
+        ::-webkit-scrollbar-thumb { background: var(--base01); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--base00); }
+    </style>
+</head>
+<body class="solarized-light h-screen flex flex-col overflow-hidden font-sans transition-colors duration-300">
+
+    <!-- TOP NAVIGATION -->
+    <nav class="bg-primary border-b border-theme h-16 flex items-center justify-between px-6 shrink-0 z-20 shadow-md">
+        <div class="flex items-center gap-4">
+            <!-- Embedded SVG Logo -->
+            <svg class="h-8 w-8 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.131A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.2-2.858.59-4.18"/>
+            </svg>
+            <h1 class="text-xl font-bold tracking-wide" style="color: var(--orange);">Module 3: ETL & Data Pipelines</h1>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <span class="text-sm font-medium opacity-75"><i class="fas fa-sun"></i></span>
+            <!-- Toggle Switch -->
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="theme-toggle" class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-400 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#002b36]"></div>
+            </label>
+            <span class="text-sm font-medium opacity-75"><i class="fas fa-moon"></i></span>
+        </div>
+    </nav>
+
+    <!-- MAIN LAYOUT -->
+    <div class="flex flex-1 overflow-hidden">
+        
+        <!-- SIDEBAR MENU -->
+        <aside class="w-64 bg-primary border-r border-theme flex flex-col overflow-y-auto shrink-0 transition-colors duration-300">
+            <div class="p-4">
+                <h2 class="text-xs uppercase tracking-wider font-semibold opacity-70 mb-4 ml-2">Course Navigation</h2>
+                <nav class="space-y-2" id="sidebar-menu">
+                    <!-- Menu items injected by JS -->
+                </nav>
+            </div>
+            
+            <div class="mt-auto p-4 border-t border-theme opacity-60 text-xs text-center">
+                <p>Cyber.SoHo Learning Platform</p>
+                <p>v2.5.1</p>
+            </div>
+        </aside>
+
+        <!-- CONTENT AREA -->
+        <main class="flex-1 overflow-y-auto bg-secondary p-8 relative transition-colors duration-300" id="main-content">
+            <!-- Dynamic Content Injected Here -->
+        </main>
+
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- DATA OBJECTS ---
+        
+        const lessons = [
+            {
+                id: "intro",
+                title: "Intro and Concepts",
+                content: `
+                    <h1 class="text-4xl font-bold mb-6" style="color: var(--orange);">Welcome to the World of Data Pipelines!</h1>
+                    <div class="flex flex-col lg:flex-row gap-8 mb-8">
+                        <div class="lg:w-2/3">
+                            <p class="text-lg mb-4 leading-relaxed">Think of data as water flowing through a city's infrastructure. Before water reaches your tap, it goes through extraction from reservoirs, treatment plants for purification, and finally distribution to your home.</p> 
+                            <p class="text-lg mb-4 leading-relaxed">Similarly, data travels from various sources through pipelines, gets cleaned and transformed, and lands in data warehouses where analysts can "drink" from it safely. Today's lecture explores this fascinating journey! <a href="https://rivery.io/blog/etl-vs-elt/" target="_blank" class="solarized-link">[rivery]</a></p>
+                        </div>
+                        <div class="lg:w-1/3 flex items-center justify-center p-4 rounded-lg border border-theme bg-primary">
+                             <!-- Simple Water Analogy SVG -->
+                             <svg width="200" height="150" viewBox="0 0 200 150">
+                                <path d="M20 75 Q 50 10 90 75 T 180 75" fill="none" stroke="var(--blue)" stroke-width="4" />
+                                <circle cx="20" cy="75" r="10" fill="var(--cyan)" />
+                                <text x="10" y="100" fill="var(--base00)" font-size="10">Source</text>
+                                <rect x="80" y="60" width="30" height="30" fill="var(--green)" />
+                                <text x="75" y="105" fill="var(--base00)" font-size="10">Pipeline</text>
+                                <rect x="160" y="55" width="40" height="40" fill="var(--orange)" />
+                                <text x="160" y="105" fill="var(--base00)" font-size="10">Warehouse</text>
+                             </svg>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                id: "lesson1",
+                title: "Lesson 1: ETL vs ELT",
+                content: `
+                    <h2 class="text-3xl font-bold mb-4" style="color: var(--yellow);">ETL vs ELT - The Great Data Processing Debate</h2>
+                    <p class="mb-4"><strong>ETL (Extract, Transform, Load)</strong> and <strong>ELT (Extract, Load, Transform)</strong> represent two different philosophical approaches to moving and processing data. The critical difference lies in <em>where</em> the transformation happens and <em>when</em> it occurs in the pipeline.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div class="p-6 rounded-lg border border-theme bg-primary">
+                            <h3 class="text-xl font-bold mb-2" style="color: var(--cyan);">ETL: The Traditional Approach</h3>
+                            <ul class="list-disc pl-5 space-y-2">
+                                <li><strong>Extract:</strong> Pull data from source.</li>
+                                <li><strong>Transform:</strong> Clean in a staging area (Chef's Kitchen).</li>
+                                <li><strong>Load:</strong> Insert into Warehouse.</li>
+                            </ul>
+                            <p class="mt-2 text-sm italic">"Pre-cooked meal"</p>
+                        </div>
+                        <div class="p-6 rounded-lg border border-theme bg-primary">
+                            <h3 class="text-xl font-bold mb-2" style="color: var(--magenta);">ELT: The Modern Cloud Approach</h3>
+                            <ul class="list-disc pl-5 space-y-2">
+                                <li><strong>Extract:</strong> Pull data.</li>
+                                <li><strong>Load:</strong> Dump raw data into Warehouse immediately.</li>
+                                <li><strong>Transform:</strong> Use the Warehouse's power to clean later.</li>
+                            </ul>
+                            <p class="mt-2 text-sm italic">"Buffet style"</p>
+                        </div>
+                    </div>
+
+                    <!-- CODING SECTION -->
+                    <div class="my-8">
+                        <h3 class="text-xl font-bold mb-2 border-b border-theme pb-2">Code Visualization: Simple ETL Transformation</h3>
+                        <p class="mb-2 text-sm">This Python example demonstrates an <strong>ETL</strong> process: converting raw prices from strings to floats (Transformation) before "loading".</p>
+                        
+                        <!-- Reactive Diagram -->
+                        <div class="w-full h-32 bg-primary border border-theme mb-2 relative overflow-hidden flex items-center justify-around" id="viz-lesson1">
+                            <div class="text-center z-10">
+                                <i class="fas fa-database fa-2x mb-2" style="color: var(--base01);"></i><br><span class="text-xs">Raw DB</span>
+                            </div>
+                            <!-- Arrow Path -->
+                            <div class="absolute left-10 right-10 top-1/2 h-1 bg-gray-300 -translate-y-1/2"></div>
+                            
+                            <!-- The Moving Packet -->
+                            <div id="packet-l1" class="absolute left-16 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold transition-all duration-300 z-20" style="background-color: var(--red);">
+                                Raw
+                            </div>
+
+                            <div class="text-center z-10 bg-primary p-2">
+                                <i id="gear-l1" class="fas fa-cogs fa-2x mb-2" style="color: var(--base01);"></i><br><span class="text-xs">Transform</span>
+                            </div>
+                             <div class="text-center z-10">
+                                <i class="fas fa-server fa-2x mb-2" style="color: var(--base01);"></i><br><span class="text-xs">Warehouse</span>
+                            </div>
+                        </div>
+
+                        <!-- Sandbox -->
+                        <div class="rounded-lg overflow-hidden border border-theme shadow-lg">
+                            <div class="bg-gray-800 text-gray-200 px-4 py-2 flex justify-between items-center">
+                                <span class="text-xs font-mono">etl_script.py</span>
+                                <div class="space-x-2">
+                                    <button onclick="runCode('lesson1')" class="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-xs transition">RUN <i class="fas fa-play ml-1"></i></button>
+                                    <button onclick="clearConsole('console-lesson1')" class="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-xs transition">CLEAR</button>
+                                </div>
+                            </div>
+                            <div class="code-bg p-4 font-mono text-sm overflow-x-auto">
+<pre style="color: var(--base00);">
+<span style="color: var(--base01);"># TASK: Simulate an ETL process extracting raw data, cleaning it, and loading it.</span>
+<span style="color: var(--green);">import</span> time
+
+raw_data = [<span style="color: var(--cyan);">"$10.50"</span>, <span style="color: var(--cyan);">" $20.00 "</span>, <span style="color: var(--cyan);">"15.5"</span>]
+clean_data = []
+
+<span style="color: var(--blue);">print</span>(<span style="color: var(--cyan);">"--- START ETL ---"</span>)
+
+<span style="color: var(--base01);"># 1. Extract & Transform Loop</span>
+<span style="color: var(--green);">for</span> item <span style="color: var(--green);">in</span> raw_data:
+    <span style="color: var(--blue);">print</span>(f<span style="color: var(--cyan);">"Extracting: '{item}'"</span>)
+    
+    <span style="color: var(--base01);"># Transformation Logic: Remove '$', strip whitespace, convert to float</span>
+    clean_val = <span style="color: var(--blue);">float</span>(item.replace(<span style="color: var(--cyan);">"$"</span>, <span style="color: var(--cyan);">""</span>).strip())
+    
+    <span style="color: var(--blue);">print</span>(f<span style="color: var(--cyan);">"Transforming... New value: {clean_val}"</span>)
+    clean_data.append(clean_val)
+    time.sleep(1) <span style="color: var(--base01);"># Simulate processing time</span>
+
+<span style="color: var(--base01);"># 2. Load</span>
+<span style="color: var(--blue);">print</span>(f<span style="color: var(--cyan);">"Loading to Warehouse: {clean_data}"</span>)
+<span style="color: var(--blue);">print</span>(<span style="color: var(--cyan);">"--- ETL COMPLETE ---"</span>)
+</pre>
+                            </div>
+                            <div id="console-lesson1" class="bg-black text-green-400 font-mono text-sm p-4 h-40 overflow-y-auto border-t border-gray-700">
+                                <span class="opacity-50">// Output will appear here...</span>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                quiz: {
+                    id: "quiz1",
+                    questions: [
+                        { type: "mcq", q: "In ELT, where does the transformation occur?", options: ["Staging Server", "Source System", "Data Warehouse", "Spreadsheet"], ans: 2, exp: "In ELT (Extract, Load, Transform), raw data is loaded directly into the Warehouse, and the Warehouse's compute power is used for transformation." },
+                        { type: "mcq", q: "Which method is better for privacy compliance (GDPR) before data leaves the region?", options: ["ETL", "ELT"], ans: 0, exp: "ETL allows you to mask or redact sensitive data (Transform) *before* it is loaded into a centralized warehouse." },
+                        { type: "msq", q: "Select benefits of ELT:", options: ["Faster load times", "Requires expensive staging hardware", "Leverages warehouse scalability", "Ideal for unstructured data"], ans: [0, 2, 3], exp: "ELT is faster (no wait for transformation), scalable (cloud warehouses), and handles raw unstructured data well." }
+                    ]
+                }
+            },
+            {
+                id: "lesson2",
+                title: "Lesson 2: Batch vs Streaming",
+                content: `
+                    <h2 class="text-3xl font-bold mb-4" style="color: var(--yellow);">Batch vs Streaming Processing</h2>
+                    <p class="mb-4">Data comes in two flavors of timing: <strong>Batch</strong> (Bounded) and <strong>Streaming</strong> (Unbounded).</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div class="p-6 rounded-lg border border-theme bg-primary">
+                            <h3 class="text-xl font-bold mb-2" style="color: var(--blue);">Batch Processing</h3>
+                            <p>Processing data in large chunks at scheduled intervals (e.g., nightly payroll).</p>
+                            <div class="mt-4 flex justify-center">
+                                <i class="fas fa-box-open fa-3x" style="color: var(--base01);"></i>
+                            </div>
+                        </div>
+                        <div class="p-6 rounded-lg border border-theme bg-primary">
+                            <h3 class="text-xl font-bold mb-2" style="color: var(--orange);">Stream Processing</h3>
+                            <p>Processing data item-by-item in real-time as it arrives (e.g., credit card fraud detection).</p>
+                            <div class="mt-4 flex justify-center">
+                                <i class="fas fa-water fa-3x" style="color: var(--blue);"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CODING SECTION -->
+                    <div class="my-8">
+                        <h3 class="text-xl font-bold mb-2 border-b border-theme pb-2">Code Visualization: Python Generators (Streaming)</h3>
+                        <p class="mb-2 text-sm">We use Python's <code>yield</code> keyword to process data one item at a time (Streaming) versus loading a whole list (Batch).</p>
+                        
+                        <!-- Reactive Diagram -->
+                        <div class="w-full h-32 bg-primary border border-theme mb-2 relative flex items-center justify-center overflow-hidden">
+                            <div class="absolute left-4 top-10">
+                                <i class="fas fa-faucet fa-2x" style="color: var(--base00);"></i>
+                            </div>
+                            <!-- Stream Particles -->
+                            <div id="stream-container" class="flex gap-4 ml-12 overflow-hidden w-full h-full items-center">
+                                <!-- Particles injected by JS -->
+                            </div>
+                        </div>
+
+                        <!-- Sandbox -->
+                        <div class="rounded-lg overflow-hidden border border-theme shadow-lg">
+                            <div class="bg-gray-800 text-gray-200 px-4 py-2 flex justify-between items-center">
+                                <span class="text-xs font-mono">stream_gen.py</span>
+                                <div class="space-x-2">
+                                    <button onclick="runCode('lesson2')" class="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-xs transition">RUN <i class="fas fa-play ml-1"></i></button>
+                                    <button onclick="clearConsole('console-lesson2')" class="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-xs transition">CLEAR</button>
+                                </div>
+                            </div>
+                            <div class="code-bg p-4 font-mono text-sm overflow-x-auto">
+<pre style="color: var(--base00);">
+<span style="color: var(--base01);"># TASK: Simulate a data stream using a Generator function (Memory Efficient)</span>
+<span style="color: var(--green);">import</span> time
+<span style="color: var(--green);">import</span> random
+
+<span style="color: var(--base01);"># A Generator Function: Yields one item at a time</span>
+<span style="color: var(--green);">def</span> <span style="color: var(--blue);">sensor_stream</span>():
+    sensors = [<span style="color: var(--cyan);">"Temp_A"</span>, <span style="color: var(--cyan);">"Pressure_B"</span>, <span style="color: var(--cyan);">"Speed_C"</span>]
+    <span style="color: var(--green);">for</span> i <span style="color: var(--green);">in</span> range(3):
+        data = {
+            <span style="color: var(--cyan);">"id"</span>: random.choice(sensors),
+            <span style="color: var(--cyan);">"value"</span>: random.randint(1, 100)
+        }
+        <span style="color: var(--yellow);">yield</span> data <span style="color: var(--base01);"># Pauses here until next request</span>
+
+<span style="color: var(--blue);">print</span>(<span style="color: var(--cyan);">"--- LISTENING TO STREAM ---"</span>)
+
+<span style="color: var(--base01);"># Consuming the stream</span>
+stream = sensor_stream()
+
+<span style="color: var(--green);">for</span> packet <span style="color: var(--green);">in</span> stream:
+    <span style="color: var(--blue);">print</span>(f<span style="color: var(--cyan);">"Received Packet: {packet}"</span>)
+    <span style="color: var(--base01);"># Simulate real-time processing delay</span>
+    time.sleep(1.5)
+
+<span style="color: var(--blue);">print</span>(<span style="color: var(--cyan);">"--- STREAM ENDED ---"</span>)
+</pre>
+                            </div>
+                            <div id="console-lesson2" class="bg-black text-green-400 font-mono text-sm p-4 h-40 overflow-y-auto border-t border-gray-700">
+                                <span class="opacity-50">// Output will appear here...</span>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                quiz: {
+                    id: "quiz2",
+                    questions: [
+                        { type: "mcq", q: "Which processing type is best for Monthly Financial Reports?", options: ["Streaming", "Batch", "Micro-batching", "Real-time"], ans: 1, exp: "Financial reports are periodic, require high accuracy, and process all data at once. Batch is ideal." },
+                        { type: "mcq", q: "What does Python's `yield` keyword do?", options: ["Stops the program", "Returns a list", "Produces one value and pauses", "Deletes data"], ans: 2, exp: "`yield` turns a function into a generator, producing one item at a time and maintaining state between calls." },
+                        { type: "msq", q: "Characteristics of Streaming Data:", options: ["Unbounded (infinite)", "Low Latency", "Historical Analysis only", "High throughput"], ans: [0, 1, 3], exp: "Streaming data never ends (unbounded), requires fast processing (low latency), and often involves high volume (throughput)." }
+                    ]
+                }
+            },
+            {
+                id: "lesson3",
+                title: "Lesson 3: Data Quality",
+                content: `
+                    <h2 class="text-3xl font-bold mb-4" style="color: var(--yellow);">Data Quality & Cleaning</h2>
+                    <p class="mb-4"><strong>GIGO (Garbage In, Garbage Out).</strong> Even the best algorithms fail with bad data. Common issues include Null Values, Duplicates, and Type Mismatches.</p>
+                    
+                    <!-- CODING SECTION -->
+                    <div class="my-8">
+                        <h3 class="text-xl font-bold mb-2 border-b border-theme pb-2">Code Visualization: Handling Missing Data</h3>
+                        <p class="mb-2 text-sm">Simulating Pandas library behavior to clean a dataset.</p>
+                        
+                        <!-- Reactive Diagram: Funnel -->
+                        <div class="w-full h-40 bg-primary border border-theme mb-2 relative flex flex-col items-center justify-start pt-2">
+                             <div class="w-32 border-t-4 border-l-4 border-r-4 border-gray-500 h-16 rounded-b-lg flex justify-center items-center relative" style="border-bottom: 20px solid transparent;">
+                                <span class="text-xs text-gray-500 absolute -top-4">Dirty Data</span>
+                                <!-- Particles -->
+                                <div id="dirt-1" class="w-3 h-3 bg-red-500 rounded-full absolute top-2 left-4 opacity-0"></div> <!-- Bad -->
+                                <div id="dirt-2" class="w-3 h-3 bg-green-500 rounded-full absolute top-4 left-10 opacity-0"></div> <!-- Good -->
+                                <div id="dirt-3" class="w-3 h-3 bg-red-500 rounded-full absolute top-2 right-4 opacity-0"></div> <!-- Bad -->
+                             </div>
+                             <i class="fas fa-filter fa-2x my-1" style="color: var(--orange);"></i>
+                             <div class="w-20 h-16 border-l-2 border-r-2 border-b-2 border-gray-500 rounded-b-lg flex flex-col-reverse items-center pb-2">
+                                <span class="text-xs text-green-600 font-bold">Clean</span>
+                                <div id="clean-pile" class="w-10 h-0 bg-green-500 transition-all duration-1000"></div>
+                             </div>
+                        </div>
+
+                        <!-- Sandbox -->
+                        <div class="rounded-lg overflow-hidden border border-theme shadow-lg">
+                            <div class="bg-gray-800 text-gray-200 px-4 py-2 flex justify-between items-center">
+                                <span class="text-xs font-mono">cleaning.py</span>
+                                <div class="space-x-2">
+                                    <button onclick="runCode('lesson3')" class="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-xs transition">RUN <i class="fas fa-play ml-1"></i></button>
+                                    <button onclick="clearConsole('console-lesson3')" class="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-xs transition">CLEAR</button>
+                                </div>
+                            </div>
+                            <div class="code-bg p-4 font-mono text-sm overflow-x-auto">
+<pre style="color: var(--base00);">
+<span style="color: var(--base01);"># TASK: Filter out rows with NULL (None) values and fix formatting.</span>
+<span style="color: var(--green);">import</span> time
+
+dataset = [
+    {<span style="color: var(--cyan);">"id"</span>: 1, <span style="color: var(--cyan);">"email"</span>: <span style="color: var(--cyan);">"alice@test.com"</span>},
+    {<span style="color: var(--cyan);">"id"</span>: 2, <span style="color: var(--cyan);">"email"</span>: <span style="color: var(--yellow);">None</span>},        <span style="color: var(--base01);"># Dirty: Missing email</span>
+    {<span style="color: var(--cyan);">"id"</span>: 3, <span style="color: var(--cyan);">"email"</span>: <span style="color: var(--cyan);">"BOB@TEST.COM"</span>} <span style="color: var(--base01);"># Dirty: Wrong case</span>
+]
+
+cleaned_data = []
+
+<span style="color: var(--blue);">print</span>(<span style="color: var(--cyan);">"--- START CLEANING ---"</span>)
+
+<span style="color: var(--green);">for</span> row <span style="color: var(--green);">in</span> dataset:
+    <span style="color: var(--blue);">print</span>(f<span style="color: var(--cyan);">"Inspecting row ID: {row['id']}..."</span>)
+    time.sleep(1)
+    
+    <span style="color: var(--base01);"># Check for Nulls</span>
+    <span style="color: var(--green);">if</span> row[<span style="color: var(--cyan);">"email"</span>] <span style="color: var(--green);">is</span> <span style="color: var(--yellow);">None</span>:
+        <span style="color: var(--blue);">print</span>(<span style="color: var(--red);">"  -> DROPPED: Email is Null"</span>)
+        <span style="color: var(--green);">continue</span>
+        
+    <span style="color: var(--base01);"># Normalize text</span>
+    row[<span style="color: var(--cyan);">"email"</span>] = row[<span style="color: var(--cyan);">"email"</span>].lower()
+    cleaned_data.append(row)
+    <span style="color: var(--blue);">print</span>(f<span style="color: var(--green);">"  -> KEPT & NORMALIZED: {row['email']}"</span>)
+
+<span style="color: var(--blue);">print</span>(f<span style="color: var(--cyan);">"Final Clean Count: {len(cleaned_data)}"</span>)
+</pre>
+                            </div>
+                            <div id="console-lesson3" class="bg-black text-green-400 font-mono text-sm p-4 h-40 overflow-y-auto border-t border-gray-700">
+                                <span class="opacity-50">// Output will appear here...</span>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                quiz: {
+                    id: "quiz3",
+                    questions: [
+                        { type: "mcq", q: "What does GIGO stand for?", options: ["Get In, Get Out", "Garbage In, Garbage Out", "Good Input, Good Output", "Global Input Governance Org"], ans: 1, exp: "It emphasizes that the quality of output is determined by the quality of the input." },
+                        { type: "mcq", q: "In the code example, how did we handle the NULL email?", options: ["Imputed with 'Unknown'", "Dropped the row", "Left it as is", "Stopped the script"], ans: 1, exp: "The code checked `if row['email'] is None` and used `continue` to skip appending it to the clean list." },
+                        { type: "msq", q: "Common Data Cleaning tasks:", options: ["Removing duplicates", "Converting data types", "Deleting the database", "Handling missing values"], ans: [0, 1, 3], exp: "Standard cleaning involves deduplication, type casting, and null handling. Deleting the DB is catastrophic!" }
+                    ]
+                }
+            },
+            {
+                id: "lesson4",
+                title: "Lesson 4: Data Lineage",
+                content: `
+                    <h2 class="text-3xl font-bold mb-4" style="color: var(--yellow);">Data Lineage & Governance</h2>
+                    <p class="mb-4"><strong>Data Lineage</strong> tracks the life cycle of data: its origin, where it moves, and how it transforms. It is crucial for debugging and regulatory compliance.</p>
+                    
+                     <!-- CODING SECTION -->
+                    <div class="my-8">
+                        <h3 class="text-xl font-bold mb-2 border-b border-theme pb-2">Code Visualization: Metadata Tagging</h3>
+                        <p class="mb-2 text-sm">A simple script that adds "Metadata" tags to a record to track its journey.</p>
+                        
+                         <!-- Reactive Diagram: Lineage Tree -->
+                        <div class="w-full h-32 bg-primary border border-theme mb-2 relative flex items-center justify-center">
+                            <div class="flex items-center gap-4">
+                                <div id="node-src" class="p-2 border border-gray-400 rounded transition-colors duration-500">Source</div>
+                                <div class="w-8 h-1 bg-gray-400"></div>
+                                <div id="node-etl" class="p-2 border border-gray-400 rounded transition-colors duration-500">ETL</div>
+                                <div class="w-8 h-1 bg-gray-400"></div>
+                                <div id="node-bi" class="p-2 border border-gray-400 rounded transition-colors duration-500">Dashboard</div>
+                            </div>
+                        </div>
+
+                        <!-- Sandbox -->
+                        <div class="rounded-lg overflow-hidden border border-theme shadow-lg">
+                            <div class="bg-gray-800 text-gray-200 px-4 py-2 flex justify-between items-center">
+                                <span class="text-xs font-mono">lineage_tracker.py</span>
+                                <div class="space-x-2">
+                                    <button onclick="runCode('lesson4')" class="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-xs transition">RUN <i class="fas fa-play ml-1"></i></button>
+                                    <button onclick="clearConsole('console-lesson4')" class="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-xs transition">CLEAR</button>
+                                </div>
+                            </div>
+                            <div class="code-bg p-4 font-mono text-sm overflow-x-auto">
+<pre style="color: var(--base00);">
+<span style="color: var(--base01);"># TASK: Add lineage metadata to a record at each step.</span>
+<span style="color: var(--green);">import</span> datetime
+
+record = {<span style="color: var(--cyan);">"data"</span>: <span style="color: var(--cyan);">"Sales_Q3"</span>, <span style="color: var(--cyan);">"lineage"</span>: []}
+
+<span style="color: var(--green);">def</span> <span style="color: var(--blue);">log_step</span>(step_name):
+    timestamp = datetime.datetime.now().strftime(<span style="color: var(--cyan);">"%H:%M:%S"</span>)
+    entry = f<span style="color: var(--cyan);">"{step_name} at {timestamp}"</span>
+    record[<span style="color: var(--cyan);">"lineage"</span>].append(entry)
+    <span style="color: var(--blue);">print</span>(f<span style="color: var(--cyan);">"Log added: {entry}"</span>)
+
+<span style="color: var(--blue);">print</span>(<span style="color: var(--cyan);">"--- LINEAGE START ---"</span>)
+log_step(<span style="color: var(--cyan);">"Extracted from CRM"</span>)
+log_step(<span style="color: var(--cyan);">"Cleaned in Python"</span>)
+log_step(<span style="color: var(--cyan);">"Loaded to Snowflake"</span>)
+
+<span style="color: var(--blue);">print</span>(<span style="color: var(--cyan);">"\nFinal Record Metadata:"</span>)
+<span style="color: var(--blue);">print</span>(record[<span style="color: var(--cyan);">"lineage"</span>])
+</pre>
+                            </div>
+                            <div id="console-lesson4" class="bg-black text-green-400 font-mono text-sm p-4 h-40 overflow-y-auto border-t border-gray-700">
+                                <span class="opacity-50">// Output will appear here...</span>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                quiz: {
+                    id: "quiz4",
+                    questions: [
+                        { type: "mcq", q: "Why is Data Lineage important?", options: ["It makes data smaller", "It allows root cause analysis for errors", "It deletes old data automatically", "It is only for managers"], ans: 1, exp: "Lineage lets you trace an error in a report back to the specific broken source or transformation step." },
+                        { type: "mcq", q: "In the code, where is the lineage stored?", options: ["In a separate database", "Inside the record dictionary", "In a text file", "It wasn't stored"], ans: 1, exp: "We appended tracking info to `record['lineage']` list, keeping metadata attached to the data." },
+                        { type: "msq", q: "Components of Data Governance:", options: ["Access Control", "Data Quality Standards", "Buying more hard drives", "Data Lineage"], ans: [0, 1, 3], exp: "Governance involves security (Access), reliability (Quality), and visibility (Lineage)." }
+                    ]
+                }
+            },
+            {
+                id: "lesson5",
+                title: "Lesson 5: Orchestration Tools",
+                content: `
+                    <h2 class="text-3xl font-bold mb-4" style="color: var(--yellow);">Orchestration: The Nervous System</h2>
+                    <p class="mb-4">Orchestration tools like <strong>Apache Airflow</strong> manage the dependencies between tasks. They use <strong>DAGs (Directed Acyclic Graphs)</strong> to ensure Task B only runs after Task A succeeds.</p>
+                    
+                     <!-- CODING SECTION -->
+                    <div class="my-8">
+                        <h3 class="text-xl font-bold mb-2 border-b border-theme pb-2">Code Visualization: Airflow DAG Structure</h3>
+                        <p class="mb-2 text-sm">Defining task dependencies in code: <code>task1 >> task2</code>.</p>
+                        
+                         <!-- Reactive Diagram: DAG -->
+                        <div class="w-full h-40 bg-primary border border-theme mb-2 relative flex items-center justify-center">
+                            <div class="relative w-64 h-24">
+                                <!-- Nodes -->
+                                <div id="dag-t1" class="absolute left-0 top-8 w-12 h-12 rounded-full border-2 border-gray-400 flex items-center justify-center bg-white text-xs z-10 transition-colors duration-500">T1</div>
+                                <div id="dag-t2" class="absolute left-24 top-0 w-12 h-12 rounded-full border-2 border-gray-400 flex items-center justify-center bg-white text-xs z-10 transition-colors duration-500">T2</div>
+                                <div id="dag-t3" class="absolute left-24 top-16 w-12 h-12 rounded-full border-2 border-gray-400 flex items-center justify-center bg-white text-xs z-10 transition-colors duration-500">T3</div>
+                                <div id="dag-t4" class="absolute right-0 top-8 w-12 h-12 rounded-full border-2 border-gray-400 flex items-center justify-center bg-white text-xs z-10 transition-colors duration-500">T4</div>
+                                
+                                <!-- Connecting Lines -->
+                                <svg class="absolute top-0 left-0 w-full h-full z-0 pointer-events-none">
+                                    <line x1="15%" y1="50%" x2="35%" y2="20%" stroke="#999" stroke-width="2" />
+                                    <line x1="15%" y1="50%" x2="35%" y2="80%" stroke="#999" stroke-width="2" />
+                                    <line x1="55%" y1="20%" x2="85%" y2="50%" stroke="#999" stroke-width="2" />
+                                    <line x1="55%" y1="80%" x2="85%" y2="50%" stroke="#999" stroke-width="2" />
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- Sandbox -->
+                        <div class="rounded-lg overflow-hidden border border-theme shadow-lg">
+                            <div class="bg-gray-800 text-gray-200 px-4 py-2 flex justify-between items-center">
+                                <span class="text-xs font-mono">airflow_dag.py</span>
+                                <div class="space-x-2">
+                                    <button onclick="runCode('lesson5')" class="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-xs transition">RUN <i class="fas fa-play ml-1"></i></button>
+                                    <button onclick="clearConsole('console-lesson5')" class="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-xs transition">CLEAR</button>
+                                </div>
+                            </div>
+                            <div class="code-bg p-4 font-mono text-sm overflow-x-auto">
+<pre style="color: var(--base00);">
+<span style="color: var(--base01);"># TASK: Simulate Airflow DAG execution flow.</span>
+<span style="color: var(--green);">import</span> time
+
+<span style="color: var(--blue);">print</span>(<span style="color: var(--cyan);">"--- AIRFLOW SCHEDULER STARTED ---"</span>)
+
+<span style="color: var(--green);">def</span> <span style="color: var(--blue);">execute_task</span>(task_id):
+    <span style="color: var(--blue);">print</span>(f<span style="color: var(--cyan);">"Running Task: {task_id}..."</span>)
+    time.sleep(1)
+    <span style="color: var(--blue);">print</span>(f<span style="color: var(--green);">"SUCCESS: {task_id}"</span>)
+
+<span style="color: var(--base01);"># Define DAG Structure: T1 >> [T2, T3] >> T4</span>
+
+<span style="color: var(--base01);"># Step 1: Upstream</span>
+execute_task(<span style="color: var(--cyan);">"Extract_Data (T1)"</span>)
+
+<span style="color: var(--base01);"># Step 2: Parallel Processing (Simulated sequentially here)</span>
+<span style="color: var(--blue);">print</span>(<span style="color: var(--yellow);">"Triggering Parallel Tasks..."</span>)
+execute_task(<span style="color: var(--cyan);">"Process_Region_A (T2)"</span>)
+execute_task(<span style="color: var(--cyan);">"Process_Region_B (T3)"</span>)
+
+<span style="color: var(--base01);"># Step 3: Downstream</span>
+<span style="color: var(--blue);">print</span>(<span style="color: var(--yellow);">"Dependencies met. Finalizing..."</span>)
+execute_task(<span style="color: var(--cyan);">"Load_Warehouse (T4)"</span>)
+
+<span style="color: var(--blue);">print</span>(<span style="color: var(--cyan);">"--- DAG RUN COMPLETE ---"</span>)
+</pre>
+                            </div>
+                            <div id="console-lesson5" class="bg-black text-green-400 font-mono text-sm p-4 h-40 overflow-y-auto border-t border-gray-700">
+                                <span class="opacity-50">// Output will appear here...</span>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                quiz: {
+                    id: "quiz5",
+                    questions: [
+                        { type: "mcq", q: "What is a DAG?", options: ["Data Access Group", "Directed Acyclic Graph", "Daily Analytics Goal", "Database Admin Guide"], ans: 1, exp: "DAG stands for Directed Acyclic Graph, representing tasks (nodes) and dependencies (arrows) without loops." },
+                        { type: "mcq", q: "If Task A fails in a DAG, what happens to dependent Task B?", options: ["It runs anyway", "It is skipped/blocked", "It retries Task A", "It deletes Task A"], ans: 1, exp: "Orchestrators ensure downstream tasks (Task B) only run if upstream dependencies (Task A) succeed." },
+                        { type: "msq", q: "Benefits of Airflow:", options: ["Manual execution", "Visual monitoring of pipelines", "Code-based definitions (Python)", "Auto-retries on failure"], ans: [1, 2, 3], exp: "Airflow provides visibility, resiliency (retries), and allows pipelines to be version-controlled as code." }
+                    ]
+                }
+            },
+            {
+                id: "glossary",
+                title: "Glossary & Flashcards",
+                content: `
+                    <h2 class="text-3xl font-bold mb-6" style="color: var(--orange);">Key Terms & Flashcards</h2>
+                    <p class="mb-6">Hover over the cards to reveal the definition.</p>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Flashcards Generated Here -->
+                        ${generateFlashcard("ETL", "Extract, Transform, Load. The traditional data integration process.")}
+                        ${generateFlashcard("ELT", "Extract, Load, Transform. The modern cloud-native approach.")}
+                        ${generateFlashcard("Data Lake", "A repository for raw, unstructured data (e.g., S3, Blob Storage).")}
+                        ${generateFlashcard("Data Warehouse", "A structured database optimized for analytics (e.g., Snowflake, Redshift).")}
+                        ${generateFlashcard("DAG", "Directed Acyclic Graph. Used in orchestration to map task dependencies.")}
+                        ${generateFlashcard("Idempotency", "The property where running a task multiple times produces the same result (crucial for pipelines).")}
+                        ${generateFlashcard("Backfill", "Running a pipeline for a past time period to fill in missing historical data.")}
+                        ${generateFlashcard("CDC", "Change Data Capture. Identifying and capturing only data that has changed.")}
+                         ${generateFlashcard("Schema Drift", "When the structure of source data changes unexpectedly, potentially breaking pipelines.")}
+                    </div>
+                `
+            }
+        ];
+
+        // --- HELPER FUNCTIONS ---
+
+        function generateFlashcard(term, def) {
+            return `
+            <div class="flashcard">
+                <div class="flashcard-inner text-lg font-bold">
+                    <div class="flashcard-front bg-primary border border-theme">
+                        <span style="color: var(--orange);">${term}</span>
+                    </div>
+                    <div class="flashcard-back">
+                        <span class="text-sm font-normal">${def}</span>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function createQuizHTML(quizData) {
+            let html = `<div class="mt-8 p-6 rounded-lg border border-theme bg-primary quiz-container" id="${quizData.id}-container">
+                <h3 class="text-2xl font-bold mb-4 flex items-center gap-2" style="color: var(--magenta);">
+                    <i class="fas fa-clipboard-check"></i> Knowledge Check
+                </h3>
+                <div class="space-y-6">`;
+
+            quizData.questions.forEach((q, idx) => {
+                html += `<div class="question-block" data-idx="${idx}">
+                    <p class="font-semibold mb-2">${idx + 1}. ${q.q}</p>
+                    <div class="space-y-2 ml-2">`;
+                
+                q.options.forEach((opt, oIdx) => {
+                    let inputType = q.type === 'msq' ? 'checkbox' : 'radio';
+                    html += `
+                        <label class="flex items-center gap-2 cursor-pointer hover:opacity-80">
+                            <input type="${inputType}" name="${quizData.id}-q${idx}" value="${oIdx}" class="accent-[var(--cyan)]">
+                            <span>${opt}</span>
+                        </label>`;
+                });
+                
+                html += `</div>
+                    <div class="hidden mt-2 p-2 rounded bg-opacity-20 text-sm explanation-box"></div>
+                </div>`;
+            });
+
+            html += `</div>
+                <div class="mt-6 flex gap-4">
+                    <button onclick="checkQuiz('${quizData.id}')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded transition shadow-md">Submit Answers</button>
+                    <button onclick="resetQuiz('${quizData.id}')" class="bg-gray-500 hover:bg-gray-400 text-white px-4 py-2 rounded transition shadow-md">Reset</button>
+                </div>
+            </div>`;
+            return html;
+        }
+
+        // --- CORE LOGIC ---
+
+        const mainContent = document.getElementById("main-content");
+        const sidebarMenu = document.getElementById("sidebar-menu");
+
+        // Render Sidebar
+        lessons.forEach(l => {
+            const btn = document.createElement("button");
+            btn.className = "w-full text-left px-4 py-3 rounded hover:bg-black/10 transition-colors text-sm font-medium sidebar-btn";
+            btn.innerHTML = l.title; // Using innerHTML to allow icons if needed
+            btn.dataset.target = l.id;
+            btn.onclick = () => loadLesson(l.id);
+            sidebarMenu.appendChild(btn);
+        });
+
+        // Load Lesson
+        function loadLesson(id) {
+            const lesson = lessons.find(l => l.id === id);
+            if (!lesson) return;
+
+            // Highlight Sidebar
+            document.querySelectorAll(".sidebar-btn").forEach(b => {
+                b.classList.remove("sidebar-active");
+                if (b.dataset.target === id) b.classList.add("sidebar-active");
+            });
+
+            // Inject Content
+            let fullContent = lesson.content;
+            if (lesson.quiz) {
+                fullContent += createQuizHTML(lesson.quiz);
+            }
+            
+            // Add Footer at bottom of every lesson
+            fullContent += `
+            <!-- Footer -->
+            <footer class="bg-stone-900 text-stone-400 py-6 mt-8">
+                <div class="container mx-auto text-center text-sm">
+                    <p style="display:flex; justify-content:center; align-items:center; gap:8px; margin:0;">
+                        <img src="cyber_soho.png"
+                             alt="Cyber Soho"
+                             style="height:32px;">
+                        <span>&copy; 2026 Cyber.SoHo. All Rights Reserved. Educational Use Only.
+                    </p>
+                </div>
+            </footer>
+            `;
+
+            mainContent.innerHTML = fullContent;
+            
+            // Fade in effect
+            mainContent.style.opacity = 0;
+            setTimeout(() => mainContent.style.opacity = 1, 50);
+        }
+
+        // --- CODE EXECUTION SIMULATION ---
+        
+        const codeOutputs = {
+            lesson1: [
+                "--- START ETL ---",
+                "Extracting: '$10.50'",
+                "Transforming... New value: 10.5",
+                "Extracting: ' $20.00 '",
+                "Transforming... New value: 20.0",
+                "Extracting: '15.5'",
+                "Transforming... New value: 15.5",
+                "Loading to Warehouse: [10.5, 20.0, 15.5]",
+                "--- ETL COMPLETE ---"
+            ],
+            lesson2: [
+                "--- LISTENING TO STREAM ---",
+                "Received Packet: {'id': 'Temp_A', 'value': 42}",
+                "Received Packet: {'id': 'Speed_C', 'value': 88}",
+                "Received Packet: {'id': 'Pressure_B', 'value': 12}",
+                "--- STREAM ENDED ---"
+            ],
+            lesson3: [
+                "--- START CLEANING ---",
+                "Inspecting row ID: 1...",
+                "  -> KEPT & NORMALIZED: alice@test.com",
+                "Inspecting row ID: 2...",
+                "  -> DROPPED: Email is Null",
+                "Inspecting row ID: 3...",
+                "  -> KEPT & NORMALIZED: bob@test.com",
+                "Final Clean Count: 2"
+            ],
+            lesson4: [
+                "--- LINEAGE START ---",
+                "Log added: Extracted from CRM at 10:00:01",
+                "Log added: Cleaned in Python at 10:00:02",
+                "Log added: Loaded to Snowflake at 10:00:03",
+                "\nFinal Record Metadata:",
+                "['Extracted...', 'Cleaned...', 'Loaded...']"
+            ],
+            lesson5: [
+                "--- AIRFLOW SCHEDULER STARTED ---",
+                "Running Task: Extract_Data (T1)...",
+                "SUCCESS: Extract_Data (T1)",
+                "Triggering Parallel Tasks...",
+                "Running Task: Process_Region_A (T2)...",
+                "SUCCESS: Process_Region_A (T2)",
+                "Running Task: Process_Region_B (T3)...",
+                "SUCCESS: Process_Region_B (T3)",
+                "Dependencies met. Finalizing...",
+                "Running Task: Load_Warehouse (T4)...",
+                "SUCCESS: Load_Warehouse (T4)",
+                "--- DAG RUN COMPLETE ---"
+            ]
+        };
+
+        function runCode(lessonId) {
+            const consoleDiv = document.getElementById(`console-${lessonId}`);
+            const lines = codeOutputs[lessonId];
+            if (!consoleDiv || !lines) return;
+
+            consoleDiv.innerHTML = "";
+            let i = 0;
+
+            // --- ANIMATION TRIGGERS ---
+            if(lessonId === 'lesson1') {
+                const packet = document.getElementById('packet-l1');
+                const gear = document.getElementById('gear-l1');
+                if(packet && gear) {
+                    // Reset
+                    packet.style.left = '4rem'; 
+                    packet.style.backgroundColor = 'var(--red)';
+                    packet.innerText = "Raw";
+                    
+                    // Animate
+                    setTimeout(() => { 
+                        packet.style.left = '50%'; 
+                        gear.classList.add('animate-spin-slow');
+                    }, 500);
+                    
+                    setTimeout(() => {
+                        packet.style.backgroundColor = 'var(--green)';
+                        packet.innerText = "Clean";
+                        gear.classList.remove('animate-spin-slow');
+                    }, 2500);
+
+                    setTimeout(() => {
+                        packet.style.left = '85%';
+                    }, 3500);
+                }
+            }
+
+            if(lessonId === 'lesson2') {
+                const streamContainer = document.getElementById('stream-container');
+                if(streamContainer) {
+                    streamContainer.innerHTML = ''; // Clear
+                    const addParticle = () => {
+                        const p = document.createElement('div');
+                        p.className = 'w-4 h-4 rounded-full bg-blue-500 shrink-0 animate-bounce';
+                        streamContainer.appendChild(p);
+                    };
+                    let interval = setInterval(addParticle, 1000);
+                    setTimeout(() => clearInterval(interval), 4000);
+                }
+            }
+
+            if(lessonId === 'lesson3') {
+                // Dirt animation
+                ['dirt-1', 'dirt-2', 'dirt-3'].forEach((id, idx) => {
+                    setTimeout(() => {
+                        const el = document.getElementById(id);
+                        if(el) {
+                            el.style.opacity = '1';
+                            el.classList.add('animate-drop');
+                        }
+                    }, idx * 1000);
+                });
+                
+                // Clean pile grow
+                setTimeout(() => {
+                    const pile = document.getElementById('clean-pile');
+                    if(pile) pile.style.height = '40px';
+                }, 3000);
+            }
+            
+            if(lessonId === 'lesson4') {
+                ['node-src', 'node-etl', 'node-bi'].forEach((id, idx) => {
+                   setTimeout(() => {
+                       const el = document.getElementById(id);
+                       if(el) el.style.backgroundColor = 'var(--green)';
+                       if(el) el.style.color = 'white';
+                   }, idx * 1000 + 500); 
+                });
+            }
+
+            if(lessonId === 'lesson5') {
+                 ['dag-t1', 'dag-t2', 'dag-t3', 'dag-t4'].forEach((id, idx) => {
+                   setTimeout(() => {
+                       const el = document.getElementById(id);
+                       if(el) {
+                           el.style.backgroundColor = 'var(--green)';
+                           el.style.borderColor = 'var(--green)';
+                           el.style.color = 'white';
+                       }
+                   }, idx * 1000 + 500); 
+                });
+            }
+
+
+            // --- CONSOLE OUTPUT LOOP ---
+            function printLine() {
+                if (i < lines.length) {
+                    const p = document.createElement("div");
+                    p.innerText = "> " + lines[i];
+                    consoleDiv.appendChild(p);
+                    consoleDiv.scrollTop = consoleDiv.scrollHeight;
+                    i++;
+                    setTimeout(printLine, 800); // 800ms delay per line
+                }
+            }
+            printLine();
+        }
+
+        function clearConsole(id) {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = '<span class="opacity-50">// Output cleared. Ready to run.</span>';
+            
+            // Reset Visuals logic (basic reset)
+            document.querySelectorAll('.animate-spin-slow').forEach(e => e.classList.remove('animate-spin-slow'));
+            // Further resets would go here for complex visuals
+        }
+
+        // --- QUIZ LOGIC ---
+
+        function checkQuiz(lessonId) {
+            const lesson = lessons.find(l => l.quiz && l.quiz.id === lessonId);
+            if (!lesson) return;
+            const quiz = lesson.quiz;
+            const container = document.getElementById(`${lessonId}-container`);
+            
+            quiz.questions.forEach((q, idx) => {
+                const block = container.querySelector(`.question-block[data-idx="${idx}"]`);
+                const inputs = block.querySelectorAll(`input`);
+                const explBox = block.querySelector('.explanation-box');
+                
+                let isCorrect = false;
+                
+                if (q.type === 'mcq') {
+                    // Check checked radio
+                    let selected = -1;
+                    inputs.forEach((inp, i) => { if(inp.checked) selected = i; });
+                    isCorrect = (selected === q.ans);
+                } else {
+                    // MSQ
+                    let selected = [];
+                    inputs.forEach((inp, i) => { if(inp.checked) selected.push(i); });
+                    // Compare arrays
+                    isCorrect = JSON.stringify(selected.sort()) === JSON.stringify(q.ans.sort());
+                }
+
+                // UI Feedback
+                if (isCorrect) {
+                    explBox.classList.remove('hidden', 'bg-red-900', 'text-red-200');
+                    explBox.classList.add('bg-green-900', 'text-green-200', 'block');
+                    explBox.innerHTML = `<strong>Correct!</strong> ${q.exp}`;
+                } else {
+                    explBox.classList.remove('hidden', 'bg-green-900', 'text-green-200');
+                    explBox.classList.add('bg-red-900', 'text-red-200', 'block');
+                    explBox.innerHTML = `<strong>Incorrect.</strong> ${q.exp}`;
+                }
+            });
+        }
+
+        function resetQuiz(lessonId) {
+            const container = document.getElementById(`${lessonId}-container`);
+            const inputs = container.querySelectorAll('input');
+            inputs.forEach(i => i.checked = false);
+            const expls = container.querySelectorAll('.explanation-box');
+            expls.forEach(e => e.classList.add('hidden'));
+        }
+
+        // --- THEME TOGGLE ---
+        const themeToggle = document.getElementById("theme-toggle");
+        themeToggle.addEventListener("change", () => {
+            if (themeToggle.checked) {
+                document.body.classList.remove("solarized-light");
+                document.body.classList.add("solarized-dark");
+            } else {
+                document.body.classList.remove("solarized-dark");
+                document.body.classList.add("solarized-light");
+            }
+        });
+
+        // Initialize first lesson
+        loadLesson("intro");
+
+    </script>
+</body>
+</html>
