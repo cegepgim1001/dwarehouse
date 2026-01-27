@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 4: Data Quality and Governance</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/skulpt/1.2.0/skulpt.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/skulpt/1.2.0/skulpt-stdlib.js"></script>
+    <style>
+        :root {
+            --base03: #002b36; --base02: #073642; --base01: #586e75; --base00: #657b83;
+            --base0: #839496; --base1: #93a1a1; --base2: #eee8d5; --base3: #fdf6e3;
+            --yellow: #b58900; --orange: #cb4b16; --red: #dc322f; --magenta: #d33682;
+            --violet: #6c71c4; --blue: #268bd2; --cyan: #2aa198; --green: #859900;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--base3); color: var(--base00);
+            transition: all 0.3s; line-height: 1.6;
+        }
+        body.dark-theme {
+            --base3: #002b36; --base2: #073642; --base1: #586e75; --base0: #657b83;
+            --base00: #839496; --base01: #93a1a1; --base02: #eee8d5; --base03: #fdf6e3;
+            background-color: var(--base3); color: var(--base0);
+        }
+        .top-menu {
+            background-color: var(--base2); padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000;
+        }
+        .lecture-title { font-size: 1.2rem; font-weight: bold; color: var(--blue); }
+        .top-controls { display: flex; gap: 1rem; align-items: center; }
+        .control-btn, .run-btn, .clear-btn {
+            padding: 0.5rem 1rem; border: none; border-radius: 4px;
+            cursor: pointer; font-size: 0.9rem; transition: all 0.3s;
+        }
+        .control-btn { background-color: var(--blue); color: var(--base3); }
+        .control-btn:hover { background-color: var(--cyan); }
+        .run-btn { background-color: var(--green); color: var(--base3); }
+        .run-btn:hover { background-color: var(--cyan); }
+        .clear-btn { background-color: var(--orange); color: var(--base3); }
+        .clear-btn:hover { background-color: var(--red); }
+        .theme-switch { position: relative; display: inline-block; width: 60px; height: 34px; }
+        .theme-switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--base1); transition: 0.4s; border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 26px; width: 26px;
+            left: 4px; bottom: 4px; background-color: var(--base3);
+            transition: 0.4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--blue); }
+        input:checked + .slider:before { transform: translateX(26px); }
+        .container { display: flex; min-height: calc(100vh - 60px); }
+        .side-menu {
+            width: 280px; background-color: var(--base2); padding: 1.5rem;
+            overflow-y: auto; box-shadow: 2px 0 4px rgba(0,0,0,0.1);
+        }
+        .menu-item {
+            padding: 0.8rem; margin: 0.5rem 0; cursor: pointer;
+            border-radius: 4px; transition: all 0.3s; color: var(--base01);
+        }
+        .menu-item:hover { background-color: var(--base1); }
+        .menu-item.active { background-color: var(--blue); color: var(--base3); }
+        .main-content { flex: 1; padding: 2rem; overflow-y: auto; max-width: 1200px; }
+        .section { display: none; animation: fadeIn 0.5s; }
+        .section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        h1 { color: var(--blue); border-bottom: 3px solid var(--blue); padding-bottom: 0.5rem; margin: 2rem 0 1rem; }
+        h2 { color: var(--cyan); margin: 1.5rem 0 1rem; }
+        h3 { color: var(--green); margin: 1rem 0 0.5rem; }
+        a { color: var(--blue); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .dark-theme a { color: var(--cyan); }
+        .code-container {
+            background-color: var(--base2); border-left: 4px solid var(--blue);
+            padding: 1rem; margin: 1rem 0; border-radius: 4px;
+        }
+        .code-header { font-weight: bold; color: var(--violet); margin-bottom: 0.5rem; }
+        pre {
+            margin: 0.5rem 0; overflow-x: auto; background-color: var(--base3);
+            padding: 1rem; border-radius: 4px; font-family: 'Courier New', monospace;
+        }
+        code { font-family: 'Courier New', monospace; font-size: 0.9rem; color: var(--green); }
+        .code-controls { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+        .output {
+            background-color: var(--base03); color: var(--base02);
+            padding: 1rem; margin-top: 0.5rem; border-radius: 4px;
+            font-family: 'Courier New', monospace; white-space: pre-wrap;
+            max-height: 400px; overflow-y: auto; display: none;
+        }
+        .dark-theme .output { background-color: var(--base3); color: var(--base00); }
+        .quiz-container {
+            background-color: var(--base2); padding: 1.5rem; margin: 2rem 0;
+            border-radius: 8px; border-left: 4px solid var(--violet);
+        }
+        .quiz-question { font-weight: bold; color: var(--violet); margin-bottom: 1rem; }
+        .quiz-option {
+            padding: 0.8rem; margin: 0.5rem 0; background-color: var(--base3);
+            border-radius: 4px; cursor: pointer; transition: all 0.3s;
+        }
+        .quiz-option:hover { background-color: var(--base1); }
+        .quiz-option.correct { background-color: var(--green); color: var(--base3); }
+        .quiz-option.incorrect { background-color: var(--red); color: var(--base3); }
+        .quiz-explanation {
+            margin-top: 1rem; padding: 1rem; background-color: var(--base3);
+            border-radius: 4px; display: none;
+        }
+        .flashcard-container {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem; margin: 2rem 0;
+        }
+        .flashcard {
+            background-color: var(--base2); padding: 1.5rem; border-radius: 8px;
+            cursor: pointer; transition: all 0.3s; min-height: 150px;
+        }
+        .flashcard:hover { transform: translateY(-5px); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        .flashcard-term { font-weight: bold; color: var(--blue); font-size: 1.1rem; }
+        .flashcard-definition { margin-top: 1rem; display: none; color: var(--base01); }
+        .flashcard.flipped .flashcard-definition { display: block; }
+        .svg-container { margin: 2rem 0; text-align: center; }
+        svg { max-width: 100%; height: auto; }
+        .collapsible {
+            background-color: var(--blue); color: var(--base3); cursor: pointer;
+            padding: 1rem; border: none; text-align: left; outline: none;
+            font-size: 1.1rem; font-weight: bold; border-radius: 4px;
+            margin: 1rem 0; width: 100%; transition: all 0.3s;
+        }
+        .collapsible:hover { background-color: var(--cyan); }
+        .collapsible:after { content: '\002B'; float: right; }
+        .collapsible.active:after { content: "\2212"; }
+        .collapsible-content {
+            max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out;
+            background-color: var(--base2); border-radius: 0 0 4px 4px;
+        }
+        .collapsible-content-inner { padding: 1rem; }
+        .important-box {
+            background-color: var(--yellow); color: var(--base03);
+            padding: 1rem; margin: 1rem 0; border-radius: 4px;
+            border-left: 4px solid var(--orange);
+        }
+        footer {
+            background-color: var(--base03); color: var(--base1);
+            padding: 2rem; text-align: center; font-size: 0.9rem;
+        }
+        .dark-theme footer { background-color: var(--base02); }
+        .footer-logo { display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 1rem; }
+        ul, ol { margin-left: 2rem; line-height: 1.8; }
+        li { margin: 0.5rem 0; }
+        @media (max-width: 768px) {
+            .container { flex-direction: column; }
+            .side-menu { width: 100%; }
+            .flashcard-container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-menu">
+        <div class="lecture-title">MODULE 4: DATA QUALITY AND GOVERNANCE</div>
+        <div class="top-controls">
+            <button class="control-btn" onclick="expandAll()">Expand All</button>
+            <button class="control-btn" onclick="collapseAll()">Collapse All</button>
+            <label class="theme-switch">
+                <input type="checkbox" id="themeToggle">
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="side-menu">
+            <div class="menu-item active" onclick="showSection('intro')">Introduction & Concepts</div>
+            <div class="menu-item" onclick="showSection('lesson1')">Lesson 1: Data Validation, Profiling & Cleansing</div>
+            <div class="menu-item" onclick="showSection('lesson2')">Lesson 2: Master Data Management (MDM)</div>
+            <div class="menu-item" onclick="showSection('lesson3')">Lesson 3: Data Lineage & Auditing</div>
+            <div class="menu-item" onclick="showSection('lesson4')">Lesson 4: Metadata Management</div>
+            <div class="menu-item" onclick="showSection('lesson5')">Lesson 5: Data Privacy & Compliance</div>
+            <div class="menu-item" onclick="showSection('glossary')">Glossary & Flashcards</div>
+        </div>
+
+        <div class="main-content">
+            <!-- INTRODUCTION SECTION -->
+            <div id="intro" class="section active">
+                <h1>Introduction to Data Quality and Governance</h1>
+                
+                <div class="important-box">
+                    <strong>Key Insight:</strong> Poor data quality costs businesses an average of $12.9 million annually, and data breaches due to poor governance make headlines every week.
+                </div>
+
+                <p>Welcome to Module 4, where we dive into one of the most critical yet often underestimated aspects of data warehousing: <strong>Data Quality and Governance</strong>. Poor data quality costs businesses an average of $12.9 million annually, and data breaches due to poor governance make headlines every week (<a href="https://www.getcollate.io/learning-center/data-quality-management" target="_blank" rel="noopener noreferrer">source</a>).</p>
+
+                <p>Think of data governance as the traffic rules of the data highway. Without them, you'd have chaos, accidents, and nobody reaching their destination safely.</p>
+
+                <div class="svg-container">
+                    <svg width="600" height="400" viewBox="0 0 600 400">
+                        <defs>
+                            <linearGradient id="grad1" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:#268bd2"/>
+                                <stop offset="100%" style="stop-color:#2aa198"/>
+                            </linearGradient>
+                        </defs>
+                        <polygon points="100,350 500,350 450,250 150,250" fill="url(#grad1)" opacity="0.8"/>
+                        <text x="300" y="310" text-anchor="middle" fill="#fdf6e3" font-size="16" font-weight="bold">Data Validation & Cleansing</text>
+                        <polygon points="150,250 450,250 400,150 200,150" fill="url(#grad1)" opacity="0.9"/>
+                        <text x="300" y="210" text-anchor="middle" fill="#fdf6e3" font-size="16" font-weight="bold">Master Data Management</text>
+                        <polygon points="200,150 400,150 350,70 250,70" fill="url(#grad1)"/>
+                        <text x="300" y="120" text-anchor="middle" fill="#fdf6e3" font-size="16" font-weight="bold">Data Governance</text>
+                        <text x="300" y="30" text-anchor="middle" fill="#268bd2" font-size="20" font-weight="bold">Data Quality Foundation</text>
+                    </svg>
+                </div>
+
+                <h2>What You'll Learn</h2>
+                <ul>
+                    <li><strong>Lesson 1:</strong> Data Validation, Profiling, and Cleansing</li>
+                    <li><strong>Lesson 2:</strong> Master Data Management (MDM)</li>
+                    <li><strong>Lesson 3:</strong> Data Lineage and Auditing</li>
+                    <li><strong>Lesson 4:</strong> Metadata Management</li>
+                    <li><strong>Lesson 5:</strong> Data Privacy and Compliance (GDPR, HIPAA)</li>
+                </ul>
+
+                <div class="quiz-container">
+                    <h3>Quick Check: Introduction</h3>
+                    <div class="quiz-question">1. How much does poor data quality cost businesses annually on average?</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, false, 'intro1')">A) $1.9 million</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, false, 'intro1')">B) $5.2 million</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, true, 'intro1')">C) $12.9 million</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, false, 'intro1')">D) $20.5 million</div>
+                    <div class="quiz-explanation" id="intro1-explanation">
+                        <strong>Answer: C) $12.9 million</strong><br>
+                        Poor data quality costs businesses an average of $12.9 million annually according to industry research.
+                    </div>
+                </div>
+            </div>
+
+            <!-- LESSON 1 -->
+            <div id="lesson1" class="section">
+                <h1>Lesson 1: Data Validation, Profiling, and Cleansing</h1>
+
+                <h2>Understanding the Foundation</h2>
+                <p>Data validation, profiling, and cleansing form the trinity of data quality management (<a href="https://www.getcollate.io/learning-center/data-quality-management" target="_blank" rel="noopener noreferrer">source</a>):</p>
+
+                <ul>
+                    <li><strong>Data Validation:</strong> Checking whether data meets specific criteria before entering your system</li>
+                    <li><strong>Data Profiling:</strong> Examining existing data to understand structure, content, and quality issues (<a href="https://osher.com.au/blog/data-cleansing-techniques/" target="_blank" rel="noopener noreferrer">source</a>)</li>
+                    <li><strong>Data Cleansing:</strong> Identifying and correcting corrupt, inaccurate, or incomplete data (<a href="https://www.flowgenius.ai/post/7-essential-data-cleaning-techniques-for-2025" target="_blank" rel="noopener noreferrer">source</a>)</li>
+                </ul>
+
+                <div class="svg-container">
+                    <svg width="700" height="250" viewBox="0 0 700 250">
+                        <defs>
+                            <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                <polygon points="0 0, 10 3.5, 0 7" fill="#268bd2"/>
+                            </marker>
+                        </defs>
+                        <rect x="50" y="85" width="150" height="80" fill="#859900" rx="5"/>
+                        <text x="125" y="120" text-anchor="middle" fill="#fdf6e3" font-size="14" font-weight="bold">Data Validation</text>
+                        <text x="125" y="140" text-anchor="middle" fill="#fdf6e3" font-size="11">Check rules &</text>
+                        <text x="125" y="155" text-anchor="middle" fill="#fdf6e3" font-size="11">constraints</text>
+                        <line x1="200" y1="125" x2="260" y2="125" stroke="#268bd2" stroke-width="3" marker-end="url(#arrow)"/>
+                        <rect x="270" y="85" width="150" height="80" fill="#b58900" rx="5"/>
+                        <text x="345" y="120" text-anchor="middle" fill="#fdf6e3" font-size="14" font-weight="bold">Data Profiling</text>
+                        <text x="345" y="140" text-anchor="middle" fill="#fdf6e3" font-size="11">Analyze quality</text>
+                        <text x="345" y="155" text-anchor="middle" fill="#fdf6e3" font-size="11">& patterns</text>
+                        <line x1="420" y1="125" x2="480" y2="125" stroke="#268bd2" stroke-width="3" marker-end="url(#arrow)"/>
+                        <rect x="490" y="85" width="150" height="80" fill="#2aa198" rx="5"/>
+                        <text x="565" y="120" text-anchor="middle" fill="#fdf6e3" font-size="14" font-weight="bold">Data Cleansing</text>
+                        <text x="565" y="140" text-anchor="middle" fill="#fdf6e3" font-size="11">Fix & remove</text>
+                        <text x="565" y="155" text-anchor="middle" fill="#fdf6e3" font-size="11">bad data</text>
+                        <text x="350" y="40" text-anchor="middle" fill="#268bd2" font-size="18" font-weight="bold">Data Quality Process</text>
+                        <text x="25" y="125" fill="#dc322f" font-size="12">Raw →</text>
+                        <text x="645" y="125" fill="#859900" font-size="12">→ Clean</text>
+                    </svg>
+                </div>
+
+                <button class="collapsible">Eight Essential Data Cleansing Techniques</button>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <p>The modern approach involves eight essential techniques (<a href="https://osher.com.au/blog/data-cleansing-techniques/" target="_blank" rel="noopener noreferrer">source</a>):</p>
+                        <ul>
+                            <li><strong>Data Deduplication:</strong> Finding and removing duplicate records</li>
+                            <li><strong>Data Standardization:</strong> Ensuring uniform formats</li>
+                            <li><strong>Missing Data Imputation:</strong> Filling in missing values</li>
+                            <li><strong>Outlier Detection:</strong> Identifying anomalous data</li>
+                            <li><strong>Data Validation:</strong> Applying business rules</li>
+                            <li><strong>Data Parsing:</strong> Breaking down complex data</li>
+                            <li><strong>Data Profiling:</strong> Statistical analysis</li>
+                            <li><strong>Record Linkage:</strong> Matching related records</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3>Real-Life Example: Email Validation Scenario</h3>
+                <div class="important-box">
+                    <strong>Task:</strong> Validate and cleanse customer email addresses for an online bookstore.<br>
+                    <strong>Relevance:</strong> Demonstrates validation, profiling, and cleansing in a practical business context.
+                </div>
+
+                <p><strong>Scenario:</strong> BookHaven has 50,000 customer records with messy emails containing typos, spaces, and duplicates. Before spending on an email campaign, they need to clean this data.</p>
+
+                <div class="code-container">
+                    <div class="code-header">Python Code: Email Validation and Cleansing</div>
+                    <pre><code id="code-lesson1"># Import regex library for email pattern validation
+import re
+# Import Counter to count data quality issues
+from collections import Counter
+
+def validate_profile_cleanse_emails(customer_data):
+    quality_issues = []
+    cleansed_data = []
+    
+    # Email validation pattern
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    
+    # Common typos dictionary
+    common_typos = {
+        'gmial.com': 'gmail.com',
+        'gmai.com': 'gmail.com',
+        'yahooo.com': 'yahoo.com',
+        'hotmial.com': 'hotmail.com'
+    }
+    
+    for idx, record in enumerate(customer_data):
+        email = record.get('email', '').strip()
+        cleansed_record = record.copy()
+        
+        # Check for missing email
+        if not email:
+            quality_issues.append('missing_email')
+            cleansed_record['validation_status'] = 'MISSING'
+            cleansed_data.append(cleansed_record)
+            continue
+        
+        # Standardize: convert to lowercase
+        email = email.lower()
+        
+        # Remove spaces
+        email = email.replace(' ', '')
+        
+        # Fix common typos
+        if '@' in email:
+            local_part, domain = email.split('@', 1)
+            if domain in common_typos:
+                domain = common_typos[domain]
+                email = f"{local_part}@{domain}"
+                quality_issues.append('typo_corrected')
+        
+        # Validate email format
+        if re.match(email_pattern, email):
+            cleansed_record['email'] = email
+            cleansed_record['validation_status'] = 'VALID'
+        else:
+            cleansed_record['email'] = email
+            cleansed_record['validation_status'] = 'INVALID'
+            quality_issues.append('invalid_format')
+        
+        cleansed_data.append(cleansed_record)
+    
+    # Generate profiling report
+    issue_summary = Counter(quality_issues)
+    total_records = len(customer_data)
+    valid_records = sum(1 for r in cleansed_data if r['validation_status'] == 'VALID')
+    
+    profiling_report = {
+        'total_records': total_records,
+        'valid_emails': valid_records,
+        'data_quality_score': round((valid_records / total_records * 100), 2),
+        'issues_found': dict(issue_summary)
+    }
+    
+    return cleansed_data, profiling_report
+
+# Sample data
+sample_customers = [
+    {'customer_id': 1, 'name': 'John Doe', 'email': 'john.doe@gmial.com'},
+    {'customer_id': 2, 'name': 'Jane Smith', 'email': 'jane smith@gmail.com'},
+    {'customer_id': 3, 'name': 'Bob Wilson', 'email': 'bob@yahooo.com'},
+    {'customer_id': 4, 'name': 'Alice Brown', 'email': ''},
+]
+
+cleansed_customers, report = validate_profile_cleanse_emails(sample_customers)
+
+print("="*60)
+print("DATA PROFILING REPORT")
+print("="*60)
+print(f"Total Records: {report['total_records']}")
+print(f"Valid Emails: {report['valid_emails']}")
+print(f"Data Quality Score: {report['data_quality_score']}%")
+print(f"Issues Found: {report['issues_found']}")
+
+print("\n" + "="*60)
+print("CLEANSED DATA RESULTS")
+print("="*60)
+for customer in cleansed_customers:
+    print(f"\nID: {customer['customer_id']}")
+    print(f"Email: {customer['email']}")
+    print(f"Status: {customer['validation_status']}")</code></pre>
+                    <div class="code-controls">
+                        <button class="run-btn" onclick="runCode('code-lesson1', 'output-lesson1')">Run Code</button>
+                        <button class="clear-btn" onclick="clearOutput('output-lesson1')">Clear Output</button>
+                    </div>
+                    <div class="output" id="output-lesson1"></div>
+                </div>
+
+                <div class="quiz-container">
+                    <h3>Lesson 1 Quiz</h3>
+                    <div class="quiz-question">1. Which technique removes duplicate records from a dataset?</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, false, 'l1q1')">A) Data Parsing</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, true, 'l1q1')">B) Data Deduplication</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, false, 'l1q1')">C) Missing Data Imputation</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, false, 'l1q1')">D) Outlier Detection</div>
+                    <div class="quiz-explanation" id="l1q1-explanation">
+                        <strong>Answer: B) Data Deduplication</strong><br>
+                        Data Deduplication specifically finds and removes duplicate records from datasets.
+                    </div>
+
+                    <div class="quiz-question" style="margin-top: 2rem;">2. What does data validation check before data enters a system?</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, false, 'l1q2')">A) Data storage location</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, true, 'l1q2')">B) Whether data meets criteria and rules</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, false, 'l1q2')">C) User permissions</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, false, 'l1q2')">D) Network speed</div>
+                    <div class="quiz-explanation" id="l1q2-explanation">
+                        <strong>Answer: B) Whether data meets criteria and rules</strong><br>
+                        Data validation checks whether data meets specific criteria, rules, or constraints before entering the system.
+                    </div>
+                </div>
+
+                <h3>Key Terms - Lesson 1</h3>
+                <div class="flashcard-container">
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Data Validation</div>
+                        <div class="flashcard-definition">The process of checking whether data meets specific criteria, rules, or constraints before it enters your system.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Data Profiling</div>
+                        <div class="flashcard-definition">The detective work of examining existing data to understand its structure, content, quality issues, and patterns.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Data Cleansing</div>
+                        <div class="flashcard-definition">The systematic process of identifying and correcting (or removing) corrupt, inaccurate, incomplete, irrelevant, or improperly formatted data.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Data Deduplication</div>
+                        <div class="flashcard-definition">Finding and removing duplicate records from a dataset to eliminate redundancy.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LESSON 2 -->
+            <div id="lesson2" class="section">
+                <h1>Lesson 2: Master Data Management (MDM)</h1>
+
+                <h2>The Challenge of Data Chaos</h2>
+                <p>Master Data Management (MDM) is the practice of creating and maintaining a single, consistent, accurate, and authoritative source of truth for an organization's critical business entities (<a href="https://www.reltio.com/resources/blog/master-data-management-best-practices/" target="_blank" rel="noopener noreferrer">source</a>):</p>
+
+                <ul>
+                    <li><strong>Customers:</strong> Who are your clients? What are their complete, accurate details?</li>
+                    <li><strong>Products:</strong> What do you sell? What are the correct specifications?</li>
+                    <li><strong>Suppliers:</strong> Who provides your materials?</li>
+                    <li><strong>Employees:</strong> Who works for you? What are their roles?</li>
+                    <li><strong>Locations:</strong> Where do you operate?</li>
+                </ul>
+
+                <div class="svg-container">
+                    <svg width="600" height="350" viewBox="0 0 600 350">
+                        <text x="300" y="30" text-anchor="middle" fill="#268bd2" font-size="18" font-weight="bold">Creating the Golden Record</text>
+                        
+                        <!-- Source Systems -->
+                        <rect x="50" y="70" width="120" height="60" fill="#cb4b16" rx="5"/>
+                        <text x="110" y="95" text-anchor="middle" fill="#fdf6e3" font-size="12">E-commerce</text>
+                        <text x="110" y="115" text-anchor="middle" fill="#fdf6e3" font-size="10">email: sarah.j@</text>
+                        
+                        <rect x="50" y="150" width="120" height="60" fill="#cb4b16" rx="5"/>
+                        <text x="110" y="175" text-anchor="middle" fill="#fdf6e3" font-size="12">POS System</text>
+                        <text x="110" y="195" text-anchor="middle" fill="#fdf6e3" font-size="10">phone: 555-0100</text>
+                        
+                        <rect x="50" y="230" width="120" height="60" fill="#cb4b16" rx="5"/>
+                        <text x="110" y="255" text-anchor="middle" fill="#fdf6e3" font-size="12">Loyalty</text>
+                        <text x="110" y="275" text-anchor="middle" fill="#fdf6e3" font-size="10">complete email</text>
+                        
+                        <!-- Arrows -->
+                        <line x1="170" y1="100" x2="220" y2="175" stroke="#268bd2" stroke-width="2"/>
+                        <line x1="170" y1="180" x2="220" y2="175" stroke="#268bd2" stroke-width="2"/>
+                        <line x1="170" y1="260" x2="220" y2="175" stroke="#268bd2" stroke-width="2"/>
+                        
+                        <!-- MDM Process -->
+                        <circle cx="250" cy="175" r="50" fill="#2aa198"/>
+                        <text x="250" y="170" text-anchor="middle" fill="#fdf6e3" font-size="14" font-weight="bold">MDM</text>
+                        <text x="250" y="185" text-anchor="middle" fill="#fdf6e3" font-size="11">Survivorship</text>
+                        <text x="250" y="200" text-anchor="middle" fill="#fdf6e3" font-size="11">Rules</text>
+                        
+                        <!-- Arrow to Golden Record -->
+                        <line x1="300" y1="175" x2="380" y2="175" stroke="#268bd2" stroke-width="3"/>
+                        <polygon points="380,175 370,170 370,180" fill="#268bd2"/>
+                        
+                        <!-- Golden Record -->
+                        <rect x="390" y="120" width="160" height="110" fill="#859900" rx="5"/>
+                        <text x="470" y="145" text-anchor="middle" fill="#fdf6e3" font-size="14" font-weight="bold">GOLDEN RECORD</text>
+                        <text x="470" y="165" text-anchor="middle" fill="#fdf6e3" font-size="11">Sarah Johnson</text>
+                        <text x="470" y="180" text-anchor="middle" fill="#fdf6e3" font-size="10">email: sarah.j@email.com</text>
+                        <text x="470" y="195" text-anchor="middle" fill="#fdf6e3" font-size="10">phone: 555-0100</text>
+                        <text x="470" y="210" text-anchor="middle" fill="#fdf6e3" font-size="10">address: 123 Oak St, Apt 4B</text>
+                    </svg>
+                </div>
+
+                <button class="collapsible">MDM Best Practices</button>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <p>Successful MDM implementations follow these principles (<a href="https://www.reltio.com/resources/blog/master-data-management-best-practices/" target="_blank" rel="noopener noreferrer">source</a>):</p>
+                        <ol>
+                            <li><strong>Multi-Domain Approach:</strong> Integrate customer, product, location, supplier data on one platform</li>
+                            <li><strong>Cloud-Native Architecture:</strong> Built for cloud, not retrofitted legacy systems</li>
+                            <li><strong>Machine Learning Integration:</strong> Automate duplicate detection and record matching</li>
+                            <li><strong>Data Stewardship:</strong> Assign people responsible for data quality</li>
+                            <li><strong>Phased Implementation:</strong> Prioritize high-impact domains first</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="quiz-container">
+                    <h3>Lesson 2 Quiz</h3>
+                    <div class="quiz-question">1. What is the "Golden Record" in MDM?</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, false, 'l2q1')">A) The oldest record in the database</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, true, 'l2q1')">B) A single, complete, accurate representation compiled from multiple sources</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, false, 'l2q1')">C) A backup copy of all data</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, false, 'l2q1')">D) The most recently updated record</div>
+                    <div class="quiz-explanation" id="l2q1-explanation">
+                        <strong>Answer: B)</strong> The Golden Record is a single, complete, accurate representation of an entity compiled from multiple sources using survivorship rules.
+                    </div>
+                </div>
+
+                <h3>Key Terms - Lesson 2</h3>
+                <div class="flashcard-container">
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Master Data Management</div>
+                        <div class="flashcard-definition">The practice of creating and maintaining a single, consistent, accurate, and authoritative source of truth for an organization's critical business entities.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Golden Record</div>
+                        <div class="flashcard-definition">A single, complete, accurate representation of an entity compiled from multiple sources that serves as the master version.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Survivorship Rules</div>
+                        <div class="flashcard-definition">Logic that determines which data source is most trustworthy for each attribute when creating a Golden Record.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Data Steward</div>
+                        <div class="flashcard-definition">A person assigned responsibility for maintaining data quality and governance in their domain.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LESSON 3 -->
+            <div id="lesson3" class="section">
+                <h1>Lesson 3: Data Lineage and Auditing</h1>
+
+                <h2>Tracing the Journey of Data</h2>
+                <p>Data Lineage is the ability to track data from its origin, through all transformations and movements, to its final destination (<a href="https://www.ovaledge.com/blog/data-lineage-tools" target="_blank" rel="noopener noreferrer">source</a>).</p>
+
+                <div class="important-box">
+                    <strong>Critical Questions Answered:</strong>
+                    <ul>
+                        <li>Where did this number in my report come from?</li>
+                        <li>Which systems will be affected if I change this column?</li>
+                        <li>Can I prove this data was handled properly?</li>
+                        <li>If this data is wrong, where did the error originate?</li>
+                    </ul>
+                </div>
+
+                <div class="svg-container">
+                    <svg width="700" height="300" viewBox="0 0 700 300">
+                        <text x="350" y="30" text-anchor="middle" fill="#268bd2" font-size="18" font-weight="bold">Data Lineage Flow</text>
+                        
+                        <!-- Source -->
+                        <rect x="50" y="100" width="100" height="80" fill="#dc322f" rx="5"/>
+                        <text x="100" y="130" text-anchor="middle" fill="#fdf6e3" font-size="12" font-weight="bold">Source DB</text>
+                        <text x="100" y="150" text-anchor="middle" fill="#fdf6e3" font-size="10">Sales</text>
+                        <text x="100" y="165" text-anchor="middle" fill="#fdf6e3" font-size="10">Transactions</text>
+                        
+                        <!-- ETL -->
+                        <rect x="200" y="100" width="100" height="80" fill="#b58900" rx="5"/>
+                        <text x="250" y="130" text-anchor="middle" fill="#fdf6e3" font-size="12" font-weight="bold">ETL</text>
+                        <text x="250" y="150" text-anchor="middle" fill="#fdf6e3" font-size="10">Transform</text>
+                        <text x="250" y="165" text-anchor="middle" fill="#fdf6e3" font-size="10">& Validate</text>
+                        
+                        <!-- Data Warehouse -->
+                        <rect x="350" y="100" width="100" height="80" fill="#2aa198" rx="5"/>
+                        <text x="400" y="130" text-anchor="middle" fill="#fdf6e3" font-size="12" font-weight="bold">Data WH</text>
+                        <text x="400" y="150" text-anchor="middle" fill="#fdf6e3" font-size="10">Revenue</text>
+                        <text x="400" y="165" text-anchor="middle" fill="#fdf6e3" font-size="10">Summary</text>
+                        
+                        <!-- Dashboard -->
+                        <rect x="500" y="100" width="100" height="80" fill="#859900" rx="5"/>
+                        <text x="550" y="130" text-anchor="middle" fill="#fdf6e3" font-size="12" font-weight="bold">Dashboard</text>
+                        <text x="550" y="150" text-anchor="middle" fill="#fdf6e3" font-size="10">Executive</text>
+                        <text x="550" y="165" text-anchor="middle" fill="#fdf6e3" font-size="10">Report</text>
+                        
+                        <!-- Arrows with labels -->
+                        <line x1="150" y1="140" x2="195" y2="140" stroke="#268bd2" stroke-width="2"/>
+                        <text x="172" y="130" text-anchor="middle" fill="#268bd2" font-size="10">Extract</text>
+                        
+                        <line x1="300" y1="140" x2="345" y2="140" stroke="#268bd2" stroke-width="2"/>
+                        <text x="322" y="130" text-anchor="middle" fill="#268bd2" font-size="10">Load</text>
+                        
+                        <line x1="450" y1="140" x2="495" y2="140" stroke="#268bd2" stroke-width="2"/>
+                        <text x="472" y="130" text-anchor="middle" fill="#268bd2" font-size="10">Query</text>
+                        
+                        <!-- Audit Log -->
+                        <rect x="250" y="220" width="200" height="50" fill="#6c71c4" rx="5"/>
+                        <text x="350" y="240" text-anchor="middle" fill="#fdf6e3" font-size="12" font-weight="bold">Audit Log</text>
+                        <text x="350" y="258" text-anchor="middle" fill="#fdf6e3" font-size="10">All transformations tracked</text>
+                    </svg>
+                </div>
+
+                <h3>Why Data Lineage Matters</h3>
+                <p>According to industry research, data lineage is essential for (<a href="https://www.velotix.ai/resources/blog/top-data-lineage-tools/" target="_blank" rel="noopener noreferrer">source</a>):</p>
+                <ul>
+                    <li><strong>Compliance and Audit Readiness:</strong> GDPR, HIPAA, SOX require data provenance</li>
+                    <li><strong>Impact Analysis:</strong> Understand what breaks before making changes</li>
+                    <li><strong>Root Cause Analysis:</strong> Trace back to find where errors started</li>
+                    <li><strong>Data Governance:</strong> Establish accountability for data</li>
+                    <li><strong>Trust and Transparency:</strong> Business users see how reports are calculated</li>
+                </ul>
+
+                <div class="quiz-container">
+                    <h3>Lesson 3 Quiz</h3>
+                    <div class="quiz-question">1. What is data lineage?</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, false, 'l3q1')">A) A type of database</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, true, 'l3q1')">B) Tracking data from origin through transformations to final destination</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, false, 'l3q1')">C) A data cleaning technique</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, false, 'l3q1')">D) A security protocol</div>
+                    <div class="quiz-explanation" id="l3q1-explanation">
+                        <strong>Answer: B)</strong> Data lineage is the ability to track data from its origin, through all transformations, to its final destination.
+                    </div>
+                </div>
+
+                <h3>Key Terms - Lesson 3</h3>
+                <div class="flashcard-container">
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Data Lineage</div>
+                        <div class="flashcard-definition">The ability to track data from its origin, through all transformations and movements, to its final destination—like GPS for your data.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Column-Level Lineage</div>
+                        <div class="flashcard-definition">Tracing individual fields through transformations, showing which source columns become which target columns.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Audit Trail</div>
+                        <div class="flashcard-definition">An immutable log of who accessed data, when, and what they did with it, essential for compliance and security.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Impact Analysis</div>
+                        <div class="flashcard-definition">Understanding what downstream systems and reports will be affected before making changes to data sources.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LESSON 4 -->
+            <div id="lesson4" class="section">
+                <h1>Lesson 4: Metadata Management</h1>
+
+                <h2>Data About Data</h2>
+                <p>Metadata is "data about data"—information that describes, explains, and makes it easier to find, use, and manage your data assets (<a href="https://snicsolutions.com/blog/metadata-framework" target="_blank" rel="noopener noreferrer">source</a>).</p>
+
+                <h3>Types of Metadata</h3>
+                <p>There are three primary categories (<a href="https://atlan.com/metadata-management-framework/" target="_blank" rel="noopener noreferrer">source</a>):</p>
+
+                <button class="collapsible">1. Technical Metadata</button>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <p>System-level information about data structure:</p>
+                        <ul>
+                            <li>Database schemas, table names, column names</li>
+                            <li>Data types, field lengths, constraints</li>
+                            <li>Physical storage locations, file formats</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <button class="collapsible">2. Business Metadata</button>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <p>Context and meaning for business users:</p>
+                        <ul>
+                            <li>Business definitions and glossary terms</li>
+                            <li>Data ownership and stewardship information</li>
+                            <li>Business rules and calculation logic</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <button class="collapsible">3. Operational Metadata</button>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <p>Information about data processing and usage:</p>
+                        <ul>
+                            <li>ETL job run times and success/failure status</li>
+                            <li>Data refresh frequencies</li>
+                            <li>Usage statistics (who accesses what, how often)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="svg-container">
+                    <svg width="600" height="300" viewBox="0 0 600 300">
+                        <text x="300" y="30" text-anchor="middle" fill="#268bd2" font-size="18" font-weight="bold">Metadata Types</text>
+                        
+                        <rect x="50" y="70" width="150" height="180" fill="#dc322f" rx="5" opacity="0.8"/>
+                        <text x="125" y="95" text-anchor="middle" fill="#fdf6e3" font-size="14" font-weight="bold">Technical</text>
+                        <text x="125" y="115" text-anchor="middle" fill="#fdf6e3" font-size="11">• Schemas</text>
+                        <text x="125" y="135" text-anchor="middle" fill="#fdf6e3" font-size="11">• Data Types</text>
+                        <text x="125" y="155" text-anchor="middle" fill="#fdf6e3" font-size="11">• Storage</text>
+                        <text x="125" y="175" text-anchor="middle" fill="#fdf6e3" font-size="11">• Constraints</text>
+                        <text x="125" y="230" text-anchor="middle" fill="#fdf6e3" font-size="10" font-style="italic">"How is it structured?"</text>
+                        
+                        <rect x="225" y="70" width="150" height="180" fill="#b58900" rx="5" opacity="0.8"/>
+                        <text x="300" y="95" text-anchor="middle" fill="#fdf6e3" font-size="14" font-weight="bold">Business</text>
+                        <text x="300" y="115" text-anchor="middle" fill="#fdf6e3" font-size="11">• Definitions</text>
+                        <text x="300" y="135" text-anchor="middle" fill="#fdf6e3" font-size="11">• Ownership</text>
+                        <text x="300" y="155" text-anchor="middle" fill="#fdf6e3" font-size="11">• Rules</text>
+                        <text x="300" y="175" text-anchor="middle" fill="#fdf6e3" font-size="11">• Glossary</text>
+                        <text x="300" y="230" text-anchor="middle" fill="#fdf6e3" font-size="10" font-style="italic">"What does it mean?"</text>
+                        
+                        <rect x="400" y="70" width="150" height="180" fill="#2aa198" rx="5" opacity="0.8"/>
+                        <text x="475" y="95" text-anchor="middle" fill="#fdf6e3" font-size="14" font-weight="bold">Operational</text>
+                        <text x="475" y="115" text-anchor="middle" fill="#fdf6e3" font-size="11">• ETL Jobs</text>
+                        <text x="475" y="135" text-anchor="middle" fill="#fdf6e3" font-size="11">• Refresh Times</text>
+                        <text x="475" y="155" text-anchor="middle" fill="#fdf6e3" font-size="11">• Usage Stats</text>
+                        <text x="475" y="175" text-anchor="middle" fill="#fdf6e3" font-size="11">• Performance</text>
+                        <text x="475" y="230" text-anchor="middle" fill="#fdf6e3" font-size="10" font-style="italic">"How is it used?"</text>
+                    </svg>
+                </div>
+
+                <div class="quiz-container">
+                    <h3>Lesson 4 Quiz</h3>
+                    <div class="quiz-question">1. Which type of metadata includes business definitions and glossary terms?</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, false, 'l4q1')">A) Technical Metadata</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, true, 'l4q1')">B) Business Metadata</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, false, 'l4q1')">C) Operational Metadata</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, false, 'l4q1')">D) Administrative Metadata</div>
+                    <div class="quiz-explanation" id="l4q1-explanation">
+                        <strong>Answer: B) Business Metadata</strong><br>
+                        Business metadata provides context and meaning for business users, including definitions and glossary terms.
+                    </div>
+                </div>
+
+                <h3>Key Terms - Lesson 4</h3>
+                <div class="flashcard-container">
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Metadata</div>
+                        <div class="flashcard-definition">"Data about data"—information that describes, explains, and makes it easier to find, use, and manage your data assets.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Data Catalog</div>
+                        <div class="flashcard-definition">A searchable, centralized repository of metadata that enables users to discover and understand available data assets.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Business Glossary</div>
+                        <div class="flashcard-definition">Standardized definitions of business terms that create common vocabulary across the organization.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LESSON 5 -->
+            <div id="lesson5" class="section">
+                <h1>Lesson 5: Data Privacy and Compliance (GDPR, HIPAA)</h1>
+
+                <h2>The High Stakes of Data Privacy</h2>
+                <p>Data privacy regulations have transformed from optional best practices to strict legal requirements with severe penalties (<a href="https://www.ataccama.com/blog/data-compliance-regulations" target="_blank" rel="noopener noreferrer">source</a>).</p>
+
+                <div class="important-box">
+                    <strong>Consequences of Non-Compliance:</strong>
+                    <ul>
+                        <li>GDPR: Up to €20 million or 4% of global annual revenue</li>
+                        <li>HIPAA: Up to $1.5 million per violation category per year</li>
+                        <li>Criminal charges and permanent reputation damage</li>
+                    </ul>
+                </div>
+
+                <h3>Major Privacy Regulations</h3>
+
+                <button class="collapsible">GDPR (General Data Protection Regulation)</button>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <p>EU regulation (<a href="https://gdpr.eu" target="_blank" rel="noopener noreferrer">gdpr.eu</a>) that protects EU residents' data:</p>
+                        <ul>
+                            <li><strong>Scope:</strong> Any organization processing EU residents' data</li>
+                            <li><strong>Key Rights:</strong> Access, erasure ("right to be forgotten"), portability</li>
+                            <li><strong>Requirements:</strong> Data Protection Officers, Privacy Impact Assessments, 72-hour breach notification</li>
+                            <li><strong>Penalties:</strong> Up to €20 million or 4% of global revenue</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <button class="collapsible">HIPAA (Health Insurance Portability and Accountability Act)</button>
+                <div class="collapsible-content">
+                    <div class="collapsible-content-inner">
+                        <p>U.S. healthcare data protection (<a href="https://www.hhs.gov/hipaa" target="_blank" rel="noopener noreferrer">hhs.gov/hipaa</a>):</p>
+                        <ul>
+                            <li><strong>Protects:</strong> Protected Health Information (PHI)</li>
+                            <li><strong>Applies to:</strong> Healthcare providers, plans, clearinghouses, and business associates</li>
+                            <li><strong>Requirements:</strong> Encryption, access controls, audit trails, patient consent (<a href="https://www.hipaajournal.com/new-hipaa-regulations/" target="_blank" rel="noopener noreferrer">source</a>)</li>
+                            <li><strong>Penalties:</strong> Up to $1.5 million per violation category annually</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="svg-container">
+                    <svg width="700" height="350" viewBox="0 0 700 350">
+                        <text x="350" y="30" text-anchor="middle" fill="#268bd2" font-size="18" font-weight="bold">Privacy Compliance Framework</text>
+                        
+                        <!-- Encryption -->
+                        <rect x="50" y="70" width="130" height="70" fill="#859900" rx="5"/>
+                        <text x="115" y="95" text-anchor="middle" fill="#fdf6e3" font-size="13" font-weight="bold">Encryption</text>
+                        <text x="115" y="115" text-anchor="middle" fill="#fdf6e3" font-size="10">Data at Rest</text>
+                        <text x="115" y="130" text-anchor="middle" fill="#fdf6e3" font-size="10">Data in Transit</text>
+                        
+                        <!-- Access Control -->
+                        <rect x="200" y="70" width="130" height="70" fill="#b58900" rx="5"/>
+                        <text x="265" y="95" text-anchor="middle" fill="#fdf6e3" font-size="13" font-weight="bold">Access Control</text>
+                        <text x="265" y="115" text-anchor="middle" fill="#fdf6e3" font-size="10">Role-Based</text>
+                        <text x="265" y="130" text-anchor="middle" fill="#fdf6e3" font-size="10">Least Privilege</text>
+                        
+                        <!-- Audit Logging -->
+                        <rect x="350" y="70" width="130" height="70" fill="#2aa198" rx="5"/>
+                        <text x="415" y="95" text-anchor="middle" fill="#fdf6e3" font-size="13" font-weight="bold">Audit Logging</text>
+                        <text x="415" y="115" text-anchor="middle" fill="#fdf6e3" font-size="10">Who, What, When</text>
+                        <text x="415" y="130" text-anchor="middle" fill="#fdf6e3" font-size="10">Immutable Trail</text>
+                        
+                        <!-- Consent Management -->
+                        <rect x="520" y="70" width="130" height="70" fill="#6c71c4" rx="5"/>
+                        <text x="585" y="95" text-anchor="middle" fill="#fdf6e3" font-size="13" font-weight="bold">Consent Mgmt</text>
+                        <text x="585" y="115" text-anchor="middle" fill="#fdf6e3" font-size="10">Track Consent</text>
+                        <text x="585" y="130" text-anchor="middle" fill="#fdf6e3" font-size="10">Allow Withdrawal</text>
+                        
+                        <!-- Data Subject Rights -->
+                        <rect x="150" y="180" width="150" height="130" fill="#dc322f" rx="5" opacity="0.8"/>
+                        <text x="225" y="205" text-anchor="middle" fill="#fdf6e3" font-size="14" font-weight="bold">Data Subject Rights</text>
+                        <text x="225" y="230" text-anchor="middle" fill="#fdf6e3" font-size="11">• Right to Access</text>
+                        <text x="225" y="250" text-anchor="middle" fill="#fdf6e3" font-size="11">• Right to Erasure</text>
+                        <text x="225" y="270" text-anchor="middle" fill="#fdf6e3" font-size="11">• Right to Rectification</text>
+                        <text x="225" y="290" text-anchor="middle" fill="#fdf6e3" font-size="11">• Right to Portability</text>
+                        
+                        <!-- Core Principles -->
+                        <rect x="400" y="180" width="150" height="130" fill="#cb4b16" rx="5" opacity="0.8"/>
+                        <text x="475" y="205" text-anchor="middle" fill="#fdf6e3" font-size="14" font-weight="bold">Core Principles</text>
+                        <text x="475" y="230" text-anchor="middle" fill="#fdf6e3" font-size="11">• Data Minimization</text>
+                        <text x="475" y="250" text-anchor="middle" fill="#fdf6e3" font-size="11">• Purpose Limitation</text>
+                        <text x="475" y="270" text-anchor="middle" fill="#fdf6e3" font-size="11">• Privacy by Design</text>
+                        <text x="475" y="290" text-anchor="middle" fill="#fdf6e3" font-size="11">• Security Safeguards</text>
+                    </svg>
+                </div>
+
+                <h3>Core Privacy Principles</h3>
+                <ol>
+                    <li><strong>Data Minimization:</strong> Collect only what you actually need</li>
+                    <li><strong>Purpose Limitation:</strong> Use data only for the stated purpose</li>
+                    <li><strong>Consent Management:</strong> Track and honor user preferences</li>
+                    <li><strong>Data Subject Rights:</strong> Enable individuals to exercise their rights</li>
+                    <li><strong>Security and Encryption:</strong> Protect data from unauthorized access</li>
+                    <li><strong>Privacy by Design:</strong> Build privacy into systems from the start</li>
+                </ol>
+
+                <div class="quiz-container">
+                    <h3>Lesson 5 Quiz</h3>
+                    <div class="quiz-question">1. What is the maximum GDPR fine for serious violations?</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, false, 'l5q1')">A) €10 million</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, true, 'l5q1')">B) €20 million or 4% of global revenue, whichever is higher</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, false, 'l5q1')">C) €5 million</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, false, 'l5q1')">D) €50 million</div>
+                    <div class="quiz-explanation" id="l5q1-explanation">
+                        <strong>Answer: B)</strong> GDPR can impose fines up to €20 million or 4% of global annual revenue, whichever is higher.
+                    </div>
+
+                    <div class="quiz-question" style="margin-top: 2rem;">2. Which regulation protects Protected Health Information (PHI) in the United States?</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, false, 'l5q2')">A) GDPR</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, true, 'l5q2')">B) HIPAA</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, false, 'l5q2')">C) CCPA</div>
+                    <div class="quiz-option" onclick="checkAnswer(this, false, 'l5q2')">D) SOX</div>
+                    <div class="quiz-explanation" id="l5q2-explanation">
+                        <strong>Answer: B) HIPAA</strong><br>
+                        HIPAA (Health Insurance Portability and Accountability Act) protects Protected Health Information in U.S. healthcare.
+                    </div>
+                </div>
+
+                <h3>Key Terms - Lesson 5</h3>
+                <div class="flashcard-container">
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">GDPR</div>
+                        <div class="flashcard-definition">General Data Protection Regulation—EU law protecting personal data of EU residents with strict penalties for violations.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">HIPAA</div>
+                        <div class="flashcard-definition">Health Insurance Portability and Accountability Act—U.S. law protecting Protected Health Information (PHI) in healthcare.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Data Minimization</div>
+                        <div class="flashcard-definition">The principle of collecting and retaining only the minimum amount of personal data necessary for the stated purpose.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Right to Erasure</div>
+                        <div class="flashcard-definition">Also known as the "right to be forgotten"—individuals can request deletion of their personal data under certain conditions.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Encryption</div>
+                        <div class="flashcard-definition">Converting data into coded format to prevent unauthorized access—required for sensitive data at rest and in transit.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Privacy by Design</div>
+                        <div class="flashcard-definition">Building privacy protections into systems from the start, rather than adding them later as an afterthought.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GLOSSARY & FLASHCARDS -->
+            <div id="glossary" class="section">
+                <h1>Glossary & Flashcards</h1>
+                
+                <p>Click any flashcard to reveal its definition. These terms represent the core concepts from all five lessons.</p>
+
+                <h2>All Key Terms</h2>
+                <div class="flashcard-container">
+                    <!-- Lesson 1 Terms -->
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Data Validation</div>
+                        <div class="flashcard-definition">The process of checking whether data meets specific criteria, rules, or constraints before it enters your system.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Data Profiling</div>
+                        <div class="flashcard-definition">The detective work of examining existing data to understand its structure, content, quality issues, and patterns.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Data Cleansing</div>
+                        <div class="flashcard-definition">The systematic process of identifying and correcting (or removing) corrupt, inaccurate, incomplete, irrelevant, or improperly formatted data.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Data Deduplication</div>
+                        <div class="flashcard-definition">Finding and removing duplicate records from a dataset to eliminate redundancy.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Data Standardization</div>
+                        <div class="flashcard-definition">Ensuring uniform formats across all records (e.g., all phone numbers in same format).</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Outlier Detection</div>
+                        <div class="flashcard-definition">Identifying anomalous data points that differ significantly from other observations.</div>
+                    </div>
+                    
+                    <!-- Lesson 2 Terms -->
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Master Data Management (MDM)</div>
+                        <div class="flashcard-definition">The practice of creating and maintaining a single, consistent, accurate, and authoritative source of truth for an organization's critical business entities.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Golden Record</div>
+                        <div class="flashcard-definition">A single, complete, accurate representation of an entity compiled from multiple sources that serves as the master version.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Survivorship Rules</div>
+                        <div class="flashcard-definition">Logic that determines which data source is most trustworthy for each attribute when creating a Golden Record.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Data Steward</div>
+                        <div class="flashcard-definition">A person assigned responsibility for maintaining data quality and governance in their domain.</div>
+                    </div>
+                    
+                    <!-- Lesson 3 Terms -->
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Data Lineage</div>
+                        <div class="flashcard-definition">The ability to track data from its origin, through all transformations and movements, to its final destination—like GPS for your data.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Column-Level Lineage</div>
+                        <div class="flashcard-definition">Tracing individual fields through transformations, showing which source columns become which target columns.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Audit Trail</div>
+                        <div class="flashcard-definition">An immutable log of who accessed data, when, and what they did with it, essential for compliance and security.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Impact Analysis</div>
+                        <div class="flashcard-definition">Understanding what downstream systems and reports will be affected before making changes to data sources.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Root Cause Analysis</div>
+                        <div class="flashcard-definition">Tracing data quality issues backwards through lineage to find where errors originated.</div>
+                    </div>
+                    
+                    <!-- Lesson 4 Terms -->
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Metadata</div>
+                        <div class="flashcard-definition">"Data about data"—information that describes, explains, and makes it easier to find, use, and manage your data assets.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Technical Metadata</div>
+                        <div class="flashcard-definition">System-level information including schemas, data types, storage locations, and constraints.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Business Metadata</div>
+                        <div class="flashcard-definition">Context and meaning for business users—definitions, ownership, business rules, and glossary terms.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Operational Metadata</div>
+                        <div class="flashcard-definition">Information about data processing—ETL schedules, refresh frequencies, usage statistics, and performance metrics.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Data Catalog</div>
+                        <div class="flashcard-definition">A searchable, centralized repository of metadata that enables users to discover and understand available data assets.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Business Glossary</div>
+                        <div class="flashcard-definition">Standardized definitions of business terms that create common vocabulary across the organization.</div>
+                    </div>
+                    
+                    <!-- Lesson 5 Terms -->
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">GDPR</div>
+                        <div class="flashcard-definition">General Data Protection Regulation—EU law protecting personal data of EU residents with strict penalties for violations.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">HIPAA</div>
+                        <div class="flashcard-definition">Health Insurance Portability and Accountability Act—U.S. law protecting Protected Health Information (PHI) in healthcare.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">PHI (Protected Health Information)</div>
+                        <div class="flashcard-definition">Any individually identifiable health information protected under HIPAA, including medical records, billing data, and insurance information.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Data Minimization</div>
+                        <div class="flashcard-definition">The principle of collecting and retaining only the minimum amount of personal data necessary for the stated purpose.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Purpose Limitation</div>
+                        <div class="flashcard-definition">Using data only for the specific purpose for which it was collected and disclosed to the data subject.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Right to Access</div>
+                        <div class="flashcard-definition">Individuals' right to obtain a copy of their personal data and information about how it's being processed.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Right to Erasure</div>
+                        <div class="flashcard-definition">Also known as the "right to be forgotten"—individuals can request deletion of their personal data under certain conditions.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Right to Rectification</div>
+                        <div class="flashcard-definition">Individuals' right to correct inaccurate or incomplete personal data.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Data Portability</div>
+                        <div class="flashcard-definition">The right to receive personal data in a machine-readable format and transmit it to another controller.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Encryption</div>
+                        <div class="flashcard-definition">Converting data into coded format to prevent unauthorized access—required for sensitive data at rest and in transit.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Privacy by Design</div>
+                        <div class="flashcard-definition">Building privacy protections into systems from the start, rather than adding them later as an afterthought.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Consent Management</div>
+                        <div class="flashcard-definition">Tracking when users consent to data processing, for what purpose, and allowing withdrawal of consent.</div>
+                    </div>
+                    <div class="flashcard" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-term">Pseudonymization</div>
+                        <div class="flashcard-definition">Replacing identifiable information with pseudonyms to protect privacy while allowing re-identification if needed.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-logo">
+            <img src="cyber_soho.png" alt="Cyber Soho" style="height:32px;">
+            <span>© 2026 Cyber.SoHo. All Rights Reserved. Educational Use Only.</span>
+        </div>
+        
+        <div style="margin-top: 2rem; text-align: left; max-width: 900px; margin-left: auto; margin-right: auto; font-size: 0.85rem;">
+            <h3 style="color: var(--blue);">DISCLAIMER</h3>
+            
+            <p><strong>Copyright and Ownership:</strong> All lecture materials, content, examples, code, and associated documentation contained herein are the exclusive intellectual property of <strong>Cyber.SoHo</strong> and are protected by copyright law. All rights reserved. Unauthorized reproduction, distribution, modification, or commercial use of these materials without express written permission from Cyber.SoHo is strictly prohibited.</p>
+            
+            <p><strong>No Professional Affiliation:</strong> This educational material is provided independently by Cyber.SoHo and does not represent, nor is it endorsed by, any academic institution, certification body, regulatory authority, or commercial entity.</p>
+            
+            <p><strong>Educational Purpose and Accuracy:</strong> While every effort has been made to ensure accuracy, this lecture is provided "as is" for educational purposes only. Cyber.SoHo makes no warranties regarding the accuracy, completeness, reliability, or suitability of the content for any particular purpose.</p>
+            
+            <p><strong>Limitation of Liability:</strong> Cyber.SoHo shall not be held liable for any direct, indirect, incidental, consequential, or punitive damages arising from the use of this information.</p>
+            
+            <p><strong>No Legal or Compliance Advice:</strong> The information regarding GDPR, HIPAA, and other regulations is provided for educational awareness only and does not constitute legal advice. Organizations must consult qualified legal counsel for compliance implementation.</p>
+            
+            <p><strong>Security Notice:</strong> Before accessing external links, users are strongly advised to verify URL safety using reputable security scanning services such as <strong>VirusTotal</strong> (<a href="https://www.virustotal.com/gui/home/url" target="_blank" rel="noopener noreferrer">virustotal.com/gui/home/url</a>).</p>
+            
+            <p><strong>Code Implementation Warning:</strong> All code examples are for educational demonstration only. Never deploy educational code directly to production environments without thorough security review and testing.</p>
+            
+            <p><strong>Date of Content:</strong> This lecture material reflects information current as of January 2026.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Theme Toggle
+        const themeToggle = document.getElementById('themeToggle');
+        themeToggle.addEventListener('change', function() {
+            document.body.classList.toggle('dark-theme');
+        });
+
+        // Section Navigation
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+            event.target.classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        // Collapsible Sections
+        document.addEventListener('DOMContentLoaded', function() {
+            const coll = document.getElementsByClassName("collapsible");
+            for (let i = 0; i < coll.length; i++) {
+                coll[i].addEventListener("click", function() {
+                    this.classList.toggle("active");
+                    const content = this.nextElementSibling;
+                    if (content.style.maxHeight) {
+                        content.style.maxHeight = null;
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + "px";
+                    }
+                });
+            }
+        });
+
+        // Expand/Collapse All
+        function expandAll() {
+            const coll = document.getElementsByClassName("collapsible");
+            for (let i = 0; i < coll.length; i++) {
+                coll[i].classList.add("active");
+                coll[i].nextElementSibling.style.maxHeight = coll[i].nextElementSibling.scrollHeight + "px";
+            }
+        }
+
+        function collapseAll() {
+            const coll = document.getElementsByClassName("collapsible");
+            for (let i = 0; i < coll.length; i++) {
+                coll[i].classList.remove("active");
+                coll[i].nextElementSibling.style.maxHeight = null;
+            }
+        }
+
+        // Quiz Answer Checking
+        function checkAnswer(element, isCorrect, quizId) {
+            const options = element.parentElement.getElementsByClassName('quiz-option');
+            for (let option of options) {
+                option.style.pointerEvents = 'none';
+                if (option === element) {
+                    option.classList.add(isCorrect ? 'correct' : 'incorrect');
+                }
+            }
+            const explanation = document.getElementById(quizId + '-explanation');
+            if (explanation) {
+                explanation.style.display = 'block';
+            }
+        }
+
+        // Python Code Execution using Skulpt
+        function runCode(codeId, outputId) {
+            const code = document.getElementById(codeId).textContent;
+            const outputElement = document.getElementById(outputId);
+            outputElement.style.display = 'block';
+            outputElement.textContent = 'Running code...\n\n';
+
+            function outf(text) {
+                outputElement.textContent += text;
+            }
+
+            function builtinRead(x) {
+                if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined)
+                    throw "File not found: '" + x + "'";
+                return Sk.builtinFiles["files"][x];
+            }
+
+            Sk.pre = "output";
+            Sk.configure({
+                output: outf,
+                read: builtinRead,
+                __future__: Sk.python3
+            });
+
+            try {
+                Sk.misceval.asyncToPromise(function() {
+                    return Sk.importMainWithBody("<stdin>", false, code, true);
+                }).then(
+                    function(mod) {
+                        console.log('Code executed successfully');
+                    },
+                    function(err) {
+                        outputElement.textContent += '\nError: ' + err.toString();
+                    }
+                );
+            } catch (e) {
+                outputElement.textContent += '\nError: ' + e.toString();
+            }
+        }
+
+        function clearOutput(outputId) {
+            const outputElement = document.getElementById(outputId);
+            outputElement.textContent = '';
+            outputElement.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

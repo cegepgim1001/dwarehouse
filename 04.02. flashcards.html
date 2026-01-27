@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Quality & Governance Flashcards</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        /* 3D Flip Utilities */
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+        
+        .transform-style-3d {
+            transform-style: preserve-3d;
+        }
+        
+        .backface-hidden {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+        
+        .rotate-y-180 {
+            transform: rotateY(180deg);
+        }
+
+        /* Card Container specific styles */
+        .flashcard-inner {
+            transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+        }
+
+        .flashcard-inner.flipped {
+            transform: rotateY(180deg);
+        }
+
+        /* Custom Scrollbar for card content if it gets too long */
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 20px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <!-- Header -->
+    <header class="mb-8 text-center">
+        <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">Data Quality & Governance</h1>
+        <p class="text-gray-600">Flashcard Study Set</p>
+    </header>
+
+    <!-- Main Flashcard Container -->
+    <main class="w-full max-w-2xl perspective-1000">
+        
+        <!-- Card Area -->
+        <div class="relative h-80 w-full cursor-pointer group" onclick="toggleFlip()">
+            <div id="flashcard-inner" class="flashcard-inner relative w-full h-full transform-style-3d shadow-xl rounded-2xl">
+                
+                <!-- Front Side -->
+                <div class="absolute w-full h-full backface-hidden bg-white rounded-2xl border border-gray-200 flex flex-col items-center justify-center p-8 text-center">
+                    <div class="absolute top-4 left-6 text-xs font-bold text-blue-500 tracking-wider uppercase">Term</div>
+                    <div class="absolute top-4 right-6 text-gray-300">
+                        <i class="fas fa-sync-alt"></i>
+                    </div>
+                    <div id="card-front" class="text-2xl md:text-3xl font-bold text-gray-800 custom-scroll overflow-y-auto max-h-full w-full flex items-center justify-center">
+                        <!-- Content injected via JS -->
+                    </div>
+                    <div class="absolute bottom-4 text-xs text-gray-400">Tap to flip</div>
+                </div>
+
+                <!-- Back Side -->
+                <div class="absolute w-full h-full backface-hidden bg-slate-800 rounded-2xl rotate-y-180 flex flex-col items-center justify-center p-8 text-center">
+                    <div class="absolute top-4 left-6 text-xs font-bold text-blue-300 tracking-wider uppercase">Definition</div>
+                    <div class="absolute top-4 right-6 text-gray-500">
+                        <i class="fas fa-sync-alt"></i>
+                    </div>
+                    <div id="card-back" class="text-lg md:text-xl text-white leading-relaxed custom-scroll overflow-y-auto max-h-full w-full flex items-center justify-center">
+                        <!-- Content injected via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="mt-8 flex flex-col items-center gap-4">
+            
+            <!-- Progress Bar -->
+            <div class="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+                <div id="progress-bar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+            
+            <div class="flex items-center justify-between w-full">
+                <button onclick="prevCard()" class="px-6 py-3 bg-white text-gray-700 rounded-lg shadow-sm hover:bg-gray-50 hover:shadow-md transition-all font-semibold flex items-center gap-2 border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed" id="btn-prev">
+                    <i class="fas fa-arrow-left"></i> Previous
+                </button>
+
+                <span id="counter" class="text-gray-500 font-medium font-mono">1 / 25</span>
+
+                <button onclick="nextCard()" class="px-6 py-3 bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700 hover:shadow-md transition-all font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" id="btn-next">
+                    Next <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+            
+            <button onclick="shuffleCards()" class="mt-2 text-sm text-gray-500 hover:text-blue-600 transition-colors flex items-center gap-1">
+                <i class="fas fa-random"></i> Shuffle Cards
+            </button>
+        </div>
+
+    </main>
+
+    <script>
+        // Data from the lecture notes
+        const initialFlashcards = [
+            {
+                "front": "Data Validation",
+                "back": "The process of checking whether data meets specific criteria, rules, or constraints before it enters a system."
+            },
+            {
+                "front": "Data Profiling",
+                "back": "The detective work of examining existing data to understand its structure, content, quality issues, and patterns."
+            },
+            {
+                "front": "Data Cleansing",
+                "back": "The systematic process of identifying and correcting (or removing) corrupt, inaccurate, incomplete, or improperly formatted data."
+            },
+            {
+                "front": "Average annual cost of poor data quality for businesses",
+                "back": "12.9 million dollars."
+            },
+            {
+                "front": "Data Deduplication",
+                "back": "The process of finding and removing duplicate records within a dataset."
+            },
+            {
+                "front": "Master Data Management (MDM)",
+                "back": "The practice of creating and maintaining a single, consistent, accurate, and authoritative source of truth for an organization's critical business entities."
+            },
+            {
+                "front": "The Golden Record",
+                "back": "A single, complete, accurate representation of an entity compiled from multiple sources, serving as the master version."
+            },
+            {
+                "front": "Survivorship Rules",
+                "back": "Logic used in MDM to determine which data source is most trustworthy for a specific attribute when merging conflicting records."
+            },
+            {
+                "front": "Data Lineage",
+                "back": "The ability to track data from its origin, through all transformations and movements, to its final destination."
+            },
+            {
+                "front": "Impact Analysis",
+                "back": "Using data lineage to understand which downstream systems and reports will be affected before making changes to a data source."
+            },
+            {
+                "front": "Metadata",
+                "back": "Data about data; information that describes, explains, and makes it easier to find, use, and manage data assets."
+            },
+            {
+                "front": "Technical Metadata",
+                "back": "System-level information about data structure, such as database schemas, table names, column names, and data types."
+            },
+            {
+                "front": "Business Metadata",
+                "back": "Context and meaning for business users, including definitions, glossary terms, data ownership, and business rules."
+            },
+            {
+                "front": "Operational Metadata",
+                "back": "Information about data processing and usage, such as ETL job run times, success/failure status, and usage statistics."
+            },
+            {
+                "front": "GDPR",
+                "back": "General Data Protection Regulation; a privacy regulation enforced by the European Union."
+            },
+            {
+                "front": "HIPAA",
+                "back": "Health Insurance Portability and Accountability Act; a US regulation protecting Protected Health Information (PHI)."
+            },
+            {
+                "front": "Data Minimization Principle",
+                "back": "The privacy principle of collecting only the data actually needed for a specific, stated purpose."
+            },
+            {
+                "front": "Purpose Limitation",
+                "back": "Using data only for the stated purpose for which it was collected, not for unrelated activities without consent."
+            },
+            {
+                "front": "Right to Erasure (Right to be Forgotten)",
+                "back": "The right of an individual to request that their personal data be deleted when it is no longer necessary or consent is withdrawn."
+            },
+            {
+                "front": "Right to Access",
+                "back": "The right of individuals to obtain a copy of their personal data held by an organization."
+            },
+            {
+                "front": "Pseudonymization",
+                "back": "Processing personal data so it can no longer be attributed to a specific data subject without additional information (e.g., using a key)."
+            },
+            {
+                "front": "Data Stewardship",
+                "back": "The assignment of specific individuals to be responsible for maintaining data quality and governance within their specific domains."
+            },
+            {
+                "front": "Audit Trail",
+                "back": "An immutable log recording who accessed data, when they accessed it, and what actions they performed."
+            },
+            {
+                "front": "Privacy by Design",
+                "back": "The approach of embedding privacy protections into the design of systems from the start, rather than adding them as an afterthought."
+            },
+            {
+                "front": "Data Imputation",
+                "back": "The technique of intelligently filling in missing values in a dataset."
+            }
+        ];
+
+        // State
+        let flashcards = [...initialFlashcards];
+        let currentIndex = 0;
+        let isFlipped = false;
+
+        // DOM Elements
+        const cardInner = document.getElementById('flashcard-inner');
+        const cardFront = document.getElementById('card-front');
+        const cardBack = document.getElementById('card-back');
+        const counter = document.getElementById('counter');
+        const progressBar = document.getElementById('progress-bar');
+        const btnPrev = document.getElementById('btn-prev');
+        const btnNext = document.getElementById('btn-next');
+
+        // Functions
+        function renderCard() {
+            // Reset flip state smoothly
+            if (isFlipped) {
+                cardInner.classList.remove('flipped');
+                isFlipped = false;
+                
+                // Wait for flip to halfway complete before updating text to avoid spoilers during transition
+                // Actually, for better UX, we update immediately if we are moving to a new card 
+                // but since we are not flipping *during* the transition of content usually...
+                // Let's just update text immediately since we unflipped.
+                setTimeout(() => {
+                    updateContent();
+                }, 200);
+            } else {
+                updateContent();
+            }
+        }
+
+        function updateContent() {
+            const currentCard = flashcards[currentIndex];
+            cardFront.textContent = currentCard.front;
+            cardBack.textContent = currentCard.back;
+            
+            // Update UI
+            counter.textContent = `${currentIndex + 1} / ${flashcards.length}`;
+            
+            // Update Progress Bar
+            const progress = ((currentIndex + 1) / flashcards.length) * 100;
+            progressBar.style.width = `${progress}%`;
+
+            // Button states
+            btnPrev.disabled = currentIndex === 0;
+            btnNext.disabled = currentIndex === flashcards.length - 1;
+        }
+
+        function toggleFlip() {
+            isFlipped = !isFlipped;
+            if (isFlipped) {
+                cardInner.classList.add('flipped');
+            } else {
+                cardInner.classList.remove('flipped');
+            }
+        }
+
+        function nextCard() {
+            if (currentIndex < flashcards.length - 1) {
+                currentIndex++;
+                renderCard();
+            }
+        }
+
+        function prevCard() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                renderCard();
+            }
+        }
+
+        function shuffleCards() {
+            // Fisher-Yates shuffle
+            for (let i = flashcards.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [flashcards[i], flashcards[j]] = [flashcards[j], flashcards[i]];
+            }
+            currentIndex = 0;
+            // Reset view to front if flipped
+            if(isFlipped) {
+                cardInner.classList.remove('flipped');
+                isFlipped = false;
+            }
+            // Small delay to allow flip reset before content update
+            setTimeout(updateContent, 300);
+        }
+
+        // Keyboard Navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                if(currentIndex === flashcards.length - 1) return;
+                nextCard();
+            } else if (e.key === 'ArrowLeft') {
+                prevCard();
+            } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'Enter') {
+                toggleFlip();
+            }
+        });
+
+        // Initial Render
+        updateContent();
+
+    </script>
+</body>
+</html>
