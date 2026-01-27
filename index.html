@@ -412,21 +412,47 @@
                 `;
             });
             
-            // Added check for Module 3 to insert specific links and divider
-            if (mod.id === 3) {
+            // Configuration for module-specific resources
+            const moduleResources = {
+                1: {
+                    lecture: "01. d-warehousing_foundation.html",
+                    flashcards: "#",
+                    flashcardsLabel: "Flashcards",
+                    extra: "https://drive.proton.me/urls/313HNBGZ0G#akqWIvdpK4mN"
+                },
+                2: {
+                    lecture: "02. d-modeling and design.html",
+                    flashcards: "#",
+                    flashcardsLabel: "Flashcards",
+                    extra: "https://drive.proton.me/urls/HKFPCXX080#0FyaQMQhK6Xk"
+                },
+                3: {
+                    lecture: "03. etl-andd_pipelines.html",
+                    flashcards: "03.01. flash_cards.html",
+                    flashcardsLabel: "Flash Cards",
+                    extra: "https://drive.proton.me/urls/HKFPCXX080#0FyaQMQhK6Xk"
+                },
+                4: { lecture: "#", flashcards: "#", flashcardsLabel: "Flashcards", extra: "#" },
+                5: { lecture: "#", flashcards: "#", flashcardsLabel: "Flashcards", extra: "#" },
+                6: { lecture: "#", flashcards: "#", flashcardsLabel: "Flashcards", extra: "#" }
+            };
+
+            const res = moduleResources[mod.id];
+
+            if (res) {
                  contentHTML += `
                     <div class="my-2 border-t border-stone-200"></div>
                     <div class="flex items-start">
                         <span class="text-teal-500 mr-3 mt-1.5 text-xs">●</span>
-                        <span class="text-slate-600"><a href="03. etl-andd_pipelines.html" target="_blank" class="text-teal-600 hover:underline">Lecture Access</a></span>
+                        <span class="text-slate-600"><a href="${res.lecture}" target="_blank" class="text-teal-600 hover:underline">Lecture Access</a></span>
                     </div>
                     <div class="flex items-start">
                         <span class="text-teal-500 mr-3 mt-1.5 text-xs">●</span>
-                        <span class="text-slate-600"><a href="03.01. flash_cards.html" target="_blank" class="text-teal-600 hover:underline">Flash Cards</a></span>
+                        <span class="text-slate-600"><a href="${res.flashcards}" target="_blank" class="text-teal-600 hover:underline">${res.flashcardsLabel}</a></span>
                     </div>
                     <div class="flex items-start">
                         <span class="text-teal-500 mr-3 mt-1.5 text-xs">●</span>
-                        <span class="text-slate-600"><a href="https://drive.proton.me/urls/HKFPCXX080#0FyaQMQhK6Xk" target="_blank" class="text-teal-600 hover:underline">Extra Access</a></span>
+                        <span class="text-slate-600"><a href="${res.extra}" target="_blank" class="text-teal-600 hover:underline">Extra Access</a></span>
                     </div>
                  `;
             }

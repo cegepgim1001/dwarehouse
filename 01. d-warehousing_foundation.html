@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Foundations of Data Warehousing - Interactive Lecture</title>
+    <!-- Tailwind for layout, custom CSS for Solarized themes -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            /* Solarized Light */
+            --base03: #002b36; --base02: #073642; --base01: #586e75; --base00: #657b83;
+            --base0: #839496; --base1: #93a1a1; --base2: #eee8d5; --base3: #fdf6e3;
+            --yellow: #b58900; --orange: #cb4b16; --red: #dc322f; --magenta: #d33682;
+            --violet: #6c71c4; --blue: #268bd2; --cyan: #2aa198; --green: #859900;
+        }
+
+        body.solarized-light {
+            background-color: var(--base3); color: var(--base00);
+        }
+        body.solarized-dark {
+            background-color: var(--base03); color: var(--base0);
+        }
+
+        .dark-card { background-color: var(--base02); color: var(--base1); }
+        .light-card { background-color: var(--base2); color: var(--base01); }
+
+        .sidebar { height: 100vh; position: sticky; top: 0; overflow-y: auto; }
+        .term-card {
+            transition: transform 0.3s; cursor: help; position: relative;
+        }
+        .term-card:hover { transform: scale(1.05); color: var(--blue); }
+        .term-card .explanation {
+            display: none; position: absolute; bottom: 100%; left: 0;
+            width: 250px; padding: 10px; border-radius: 8px; z-index: 50;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .term-card:hover .explanation { display: block; }
+
+        .code-console {
+            font-family: 'Courier New', Courier, monospace;
+            padding: 10px; min-height: 100px; font-size: 0.9rem;
+            border-radius: 4px; border: 1px solid var(--base1);
+        }
+
+        .nav-link { transition: 0.2s; border-left: 3px solid transparent; }
+        .nav-link:hover { background: var(--base2); border-left: 3px solid var(--blue); }
+
+        details > summary { cursor: pointer; list-style: none; }
+        details[open] > summary { color: var(--blue); font-weight: bold; }
+        
+        /* Hyperlink visibility in both themes */
+        .solarized-light a { color: var(--blue); text-decoration: underline; }
+        .solarized-dark a { color: var(--cyan); text-decoration: underline; }
+
+        @keyframes moveData {
+            0% { transform: translateX(0); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translateX(150px); opacity: 0; }
+        }
+        .data-particle { fill: var(--yellow); visibility: hidden; }
+        .running .data-particle { visibility: visible; animation: moveData 2s infinite; }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .node-active { animation: pulse 1s infinite; fill: var(--orange) !important; }
+    </style>
+</head>
+<body class="solarized-light transition-colors duration-300">
+
+    <!-- TOP MENU -->
+    <header class="sticky top-0 z-50 w-full border-b flex justify-between items-center p-4 bg-inherit shadow-sm">
+        <div class="flex items-center gap-4">
+            <h1 class="text-xl font-bold text-blue-500">Foundations of Data Warehousing</h1>
+        </div>
+        <div class="flex items-center gap-4">
+            <button onclick="expandAll()" class="px-3 py-1 text-sm rounded border border-blue-400">Expand All</button>
+            <button onclick="collapseAll()" class="px-3 py-1 text-sm rounded border border-blue-400">Collapse All</button>
+            <div class="flex items-center gap-2">
+                <span id="theme-label" class="text-sm">Light</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="theme-toggle" class="sr-only peer" onchange="toggleTheme()">
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex">
+        <!-- SIDE MENU -->
+        <nav class="sidebar w-64 p-6 border-r hidden md:block">
+            <ul class="space-y-4">
+                <li><a href="#intro" class="nav-link block p-2">Intro & Concepts</a></li>
+                <li><a href="#lesson1" class="nav-link block p-2">LESSON 1: Introduction</a></li>
+                <li><a href="#lesson2" class="nav-link block p-2">LESSON 2: Architecture</a></li>
+                <li><a href="#lesson3" class="nav-link block p-2">LESSON 3: ETL Processes</a></li>
+                <li><a href="#lesson4" class="nav-link block p-2">LESSON 4: Data Modeling</a></li>
+                <li><a href="#lesson5" class="nav-link block p-2">LESSON 5: Storage & Retrieval</a></li>
+                <li><a href="#lesson6" class="nav-link block p-2">LESSON 6: Data Governance</a></li>
+                <li><a href="#lesson7" class="nav-link block p-2">LESSON 7: Modern Trends</a></li>
+                <li><a href="#glossary" class="nav-link block p-2 font-semibold">Glossary & Flashcards</a></li>
+            </ul>
+        </nav>
+
+        <!-- MAIN CONTENT -->
+        <main class="flex-1 p-8 max-w-5xl mx-auto space-y-12">
+
+            <!-- INTRO SECTION -->
+            <section id="intro">
+                <h2 class="text-3xl font-bold mb-4">Introduction to Foundations</h2>
+                <div class="prose max-w-none">
+                    <p>Welcome to the comprehensive module on <strong>Data Warehousing Foundations</strong>. In this session, we explore the transition from operational databases to analytical repositories. We will cover why businesses need a "Single Source of Truth" and how data architectures have evolved to support modern Big Data requirements.</p>
+                </div>
+            </section>
+
+            <!-- LESSON 1 -->
+            <section id="lesson1">
+                <details open class="lesson-details">
+                    <summary class="text-2xl font-bold mb-4">LESSON 1: Introduction to Data Warehousing</summary>
+                    <div class="mt-4 space-y-6">
+                        <p>A Data Warehouse (DW) is a subject-oriented, integrated, time-variant, and non-volatile collection of data. Unlike OLTP systems used for daily transactions, DWs are designed for OLAP (Online Analytical Processing).</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="p-4 border rounded">
+                                <h4 class="font-bold text-yellow-600">Subject-Oriented</h4>
+                                <p>Focused on business entities (Sales, Product) rather than process logic.</p>
+                            </div>
+                            <div class="p-4 border rounded">
+                                <h4 class="font-bold text-green-600">Integrated</h4>
+                                <p>Uniform naming conventions and units from disparate sources.</p>
+                            </div>
+                        </div>
+
+                        <!-- Real-Life Example: Netflix -->
+                        <div class="p-6 bg-opacity-10 bg-blue-400 rounded-lg">
+                            <h3 class="font-bold border-b pb-2 mb-2">Real-Life Example: Netflix Analytics</h3>
+                            <p>Netflix tracks every pause, play, and skip. This data flows into a warehouse to power recommendation engines.</p>
+                            
+                            <!-- PYTHON EXAMPLE 1 -->
+                            <div class="mt-4 p-4 bg-gray-900 text-white rounded font-mono text-sm">
+                                <p class="text-gray-400 mb-2">Task: Understanding how Netflix tracks and analyzes viewing habits to provide personalized recommendations.</p>
+                                <div id="code1" class="space-y-1">
+                                    <p><span class="text-green-400"># Define a list of raw viewing events</span></p>
+                                    <p>raw_data = [{"id": 1, "action": "play"}, {"id": 2, "action": "pause"}]</p>
+                                    <p><span class="text-green-400"># Function to load data into the warehouse</span></p>
+                                    <p>def load_to_dw(data):</p>
+                                    <p>&nbsp;&nbsp;print("Initalizing connection...")</p>
+                                    <p>&nbsp;&nbsp;for item in data:</p>
+                                    <p>&nbsp;&nbsp;&nbsp;&nbsp;print(f"Loading record: {item}")</p>
+                                    <p>&nbsp;&nbsp;print("Load complete.")</p>
+                                </div>
+                                <div class="flex gap-2 mt-4">
+                                    <button onclick="runPython(1)" class="bg-blue-600 px-4 py-1 rounded">Run</button>
+                                    <button onclick="clearPython(1)" class="bg-red-600 px-4 py-1 rounded">Clear</button>
+                                </div>
+                                <div id="console1" class="code-console mt-4 bg-black text-green-400 border-green-800">Console ready...</div>
+                            </div>
+                        </div>
+
+                        <!-- FLASHCARDS 1 -->
+                        <div class="flex flex-wrap gap-4 mt-8">
+                            <div class="term-card p-3 border border-blue-500 rounded-lg bg-inherit">
+                                OLAP
+                                <div class="explanation bg-white dark:bg-gray-800 border">Online Analytical Processing: Systems optimized for complex queries and reporting.</div>
+                            </div>
+                            <div class="term-card p-3 border border-blue-500 rounded-lg bg-inherit">
+                                Non-Volatile
+                                <div class="explanation bg-white dark:bg-gray-800 border">Data in a warehouse is not updated; new data is appended to preserve history.</div>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+            </section>
+
+            <!-- LESSON 2: ARCHITECTURE -->
+            <section id="lesson2">
+                <details open class="lesson-details">
+                    <summary class="text-2xl font-bold mb-4">LESSON 2: Data Warehouse Architecture</summary>
+                    <div class="mt-4 space-y-6">
+                        <p>Modern architecture typically consists of a Staging Area, the Data Warehouse itself, and specialized Data Marts.</p>
+                        
+                        <!-- SVG DIAGRAM -->
+                        <div class="flex justify-center p-4">
+                            <svg width="600" height="200" viewBox="0 0 600 200" id="viz2">
+                                <rect x="10" y="50" width="100" height="100" fill="none" stroke="currentColor" rx="5" />
+                                <text x="25" y="105" font-size="12" fill="currentColor">Sources</text>
+                                
+                                <path d="M 110 100 L 190 100" stroke="currentColor" fill="none" marker-end="url(#arrow)" />
+                                
+                                <rect x="200" y="30" width="150" height="140" fill="none" stroke="currentColor" rx="5" />
+                                <text x="220" y="105" font-size="12" fill="currentColor">Data Warehouse</text>
+                                
+                                <circle class="data-particle" cx="130" cy="100" r="4" />
+                                <circle class="data-particle" cx="150" cy="100" r="4" />
+
+                                <defs>
+                                    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                                        <path d="M0,0 L0,6 L9,3 z" fill="currentColor" />
+                                    </marker>
+                                </defs>
+                            </svg>
+                        </div>
+
+                        <p>Reference: <a href="https://www.integrate.io/blog/data-warehouse-architecture/" target="_blank">Understand Architecture Best Practices</a></p>
+
+                        <!-- PYTHON EXAMPLE 2 -->
+                        <div class="mt-4 p-4 bg-gray-900 text-white rounded font-mono text-sm">
+                            <p class="text-gray-400 mb-2">Task: Differentiating between basic source ingestion and integrated warehouse storage.</p>
+                            <div id="code2" class="space-y-1">
+                                <p><span class="text-green-400"># Step 1: Simulated Sources</span></p>
+                                <p>source_a = ["User_1", "User_2"]</p>
+                                <p>source_b = ["Sales_99", "Sales_100"]</p>
+                                <p><span class="text-green-400"># Step 2: Integration Logic</span></p>
+                                <p>integrated_store = source_a + source_b</p>
+                                <p>print(f"Total Integrated Items: {len(integrated_store)}")</p>
+                            </div>
+                            <div class="flex gap-2 mt-4">
+                                <button onclick="runPython(2)" class="bg-blue-600 px-4 py-1 rounded">Run</button>
+                                <button onclick="clearPython(2)" class="bg-red-600 px-4 py-1 rounded">Clear</button>
+                            </div>
+                            <div id="console2" class="code-console mt-4 bg-black text-green-400 border-green-800">Console ready...</div>
+                        </div>
+                    </div>
+                </details>
+            </section>
+
+            <!-- LESSON 3: ETL -->
+            <section id="lesson3">
+                <details open class="lesson-details">
+                    <summary class="text-2xl font-bold mb-4">LESSON 3: ETL Processes</summary>
+                    <div class="mt-4 space-y-6">
+                        <p>ETL stands for Extract, Transform, and Load. It is the backbone of data integration.</p>
+                        <div class="grid md:grid-cols-3 gap-4">
+                            <div class="p-4 bg-opacity-5 bg-orange-500 rounded">
+                                <h4 class="font-bold uppercase">Extract</h4>
+                                <p class="text-sm">Pulling data from CRM, ERP, and flat files.</p>
+                            </div>
+                            <div class="p-4 bg-opacity-5 bg-violet-500 rounded">
+                                <h4 class="font-bold uppercase">Transform</h4>
+                                <p class="text-sm">Cleaning, deduplicating, and formatting.</p>
+                            </div>
+                            <div class="p-4 bg-opacity-5 bg-cyan-500 rounded">
+                                <h4 class="font-bold uppercase">Load</h4>
+                                <p class="text-sm">Writing the data into the final storage.</p>
+                            </div>
+                        </div>
+
+                         <!-- PYTHON EXAMPLE 3 -->
+                         <div class="mt-4 p-4 bg-gray-900 text-white rounded font-mono text-sm">
+                            <p class="text-gray-400 mb-2">Task: Simulating an ETL pipeline to clean and load data.</p>
+                            <div id="code3" class="space-y-1">
+                                <p><span class="text-green-400"># Raw data with inconsistencies</span></p>
+                                <p>dirty_data = ["  apple ", "ORANGE", " Banana"]</p>
+                                <p><span class="text-green-400"># Transform process</span></p>
+                                <p>clean_data = [item.strip().lower() for item in dirty_data]</p>
+                                <p>print(f"Cleaned: {clean_data}")</p>
+                            </div>
+                            <div class="flex gap-2 mt-4">
+                                <button onclick="runPython(3)" class="bg-blue-600 px-4 py-1 rounded">Run</button>
+                                <button onclick="clearPython(3)" class="bg-red-600 px-4 py-1 rounded">Clear</button>
+                            </div>
+                            <div id="console3" class="code-console mt-4 bg-black text-green-400 border-green-800">Console ready...</div>
+                        </div>
+
+                        <p>Learn more about ETL vs ELT at <a href="https://www.matillion.com/resources/blog/etl-vs-elt" target="_blank">Matillion Blogs</a>.</p>
+                    </div>
+                </details>
+            </section>
+
+            <!-- LESSON 4: DATA MODELING -->
+            <section id="lesson4">
+                <details class="lesson-details">
+                    <summary class="text-2xl font-bold mb-4">LESSON 4: Data Modeling for Warehousing</summary>
+                    <div class="mt-4 space-y-6">
+                        <p>Dimensional modeling is essential for warehouse performance. The two most common designs are the <strong>Star Schema</strong> and <strong>Snowflake Schema</strong>.</p>
+                        
+                        <!-- SVG STAR SCHEMA -->
+                        <div class="flex justify-center p-4">
+                            <svg width="400" height="250" viewBox="0 0 400 250" id="viz4">
+                                <rect x="150" y="80" width="100" height="60" fill="none" stroke="currentColor" rx="5" id="fact-table" />
+                                <text x="175" y="115" font-size="12" fill="currentColor">FACTS</text>
+                                
+                                <rect x="20" y="20" width="80" height="40" fill="none" stroke="currentColor" rx="5" />
+                                <text x="35" y="45" font-size="10" fill="currentColor">Time</text>
+                                
+                                <rect x="300" y="20" width="80" height="40" fill="none" stroke="currentColor" rx="5" />
+                                <text x="315" y="45" font-size="10" fill="currentColor">Product</text>
+                                
+                                <rect x="20" y="180" width="80" height="40" fill="none" stroke="currentColor" rx="5" />
+                                <text x="35" y="205" font-size="10" fill="currentColor">Store</text>
+                                
+                                <rect x="300" y="180" width="80" height="40" fill="none" stroke="currentColor" rx="5" />
+                                <text x="315" y="205" font-size="10" fill="currentColor">Customer</text>
+
+                                <line x1="100" y1="50" x2="150" y2="85" stroke="currentColor" stroke-dasharray="4" />
+                                <line x1="300" y1="50" x2="250" y2="85" stroke="currentColor" stroke-dasharray="4" />
+                                <line x1="100" y1="190" x2="150" y2="135" stroke="currentColor" stroke-dasharray="4" />
+                                <line x1="300" y1="190" x2="250" y2="135" stroke="currentColor" stroke-dasharray="4" />
+                            </svg>
+                        </div>
+
+                        <!-- PYTHON EXAMPLE 4 -->
+                        <div class="mt-4 p-4 bg-gray-900 text-white rounded font-mono text-sm">
+                            <p class="text-gray-400 mb-2">Task: Visualizing a Star Schema relationship by joining Fact and Dimension data.</p>
+                            <div id="code4" class="space-y-1">
+                                <p><span class="text-green-400"># Fact data: Sales</span></p>
+                                <p>facts = [{"pid": 101, "revenue": 500}, {"pid": 102, "revenue": 300}]</p>
+                                <p><span class="text-green-400"># Dimension data: Products</span></p>
+                                <p>dims = {101: "Laptop", 102: "Mouse"}</p>
+                                <p><span class="text-green-400"># Create joined view</span></p>
+                                <p>report = [f"{dims[f['pid']]}: ${f['revenue']}" for f in facts]</p>
+                                <p>print(report)</p>
+                            </div>
+                            <div class="flex gap-2 mt-4">
+                                <button onclick="runPython(4)" class="bg-blue-600 px-4 py-1 rounded">Run</button>
+                                <button onclick="clearPython(4)" class="bg-red-600 px-4 py-1 rounded">Clear</button>
+                            </div>
+                            <div id="console4" class="code-console mt-4 bg-black text-green-400 border-green-800">Console ready...</div>
+                        </div>
+                    </div>
+                </details>
+            </section>
+
+            <!-- LESSON 5: STORAGE & RETRIEVAL -->
+            <section id="lesson5">
+                <details class="lesson-details">
+                    <summary class="text-2xl font-bold mb-4">LESSON 5: Storage and Retrieval Mechanisms</summary>
+                    <div class="mt-4 space-y-6">
+                        <p>Modern DWs use <strong>Columnar Storage</strong> rather than row storage. This allows for massive compression and faster aggregation queries.</p>
+                        
+                        <div class="p-4 border border-violet-400 rounded-lg">
+                            <h4 class="font-bold">Columnar vs Row Storage</h4>
+                            <p class="text-sm italic">Row storage is great for "Update profile", Columnar is great for "Average revenue last year".</p>
+                        </div>
+
+                        <!-- PYTHON EXAMPLE 5 -->
+                        <div class="mt-4 p-4 bg-gray-900 text-white rounded font-mono text-sm">
+                            <p class="text-gray-400 mb-2">Task: Comparing row-based access vs columnar-based aggregation efficiency.</p>
+                            <div id="code5" class="space-y-1">
+                                <p><span class="text-green-400"># Columnar representation of sales</span></p>
+                                <p>prices = [100.5, 20.0, 50.75, 10.0]</p>
+                                <p><span class="text-green-400"># Fast Aggregation</span></p>
+                                <p>total_revenue = sum(prices)</p>
+                                <p>print(f"Total Revenue aggregated: {total_revenue}")</p>
+                            </div>
+                            <div class="flex gap-2 mt-4">
+                                <button onclick="runPython(5)" class="bg-blue-600 px-4 py-1 rounded">Run</button>
+                                <button onclick="clearPython(5)" class="bg-red-600 px-4 py-1 rounded">Clear</button>
+                            </div>
+                            <div id="console5" class="code-console mt-4 bg-black text-green-400 border-green-800">Console ready...</div>
+                        </div>
+                    </div>
+                </details>
+            </section>
+
+            <!-- LESSON 6: GOVERNANCE -->
+            <section id="lesson6">
+                <details class="lesson-details">
+                    <summary class="text-2xl font-bold mb-4">LESSON 6: Data Governance and Quality</summary>
+                    <div class="mt-4 space-y-6">
+                        <p>Governance ensures data is secure, private, and accurate. Compliance with regulations like <strong>GDPR</strong> and <strong>HIPAA</strong> is mandatory for modern data platforms.</p>
+                        
+                        <!-- SVG SECURITY NODE -->
+                        <div class="flex justify-center p-4">
+                            <svg width="200" height="150" viewBox="0 0 200 150">
+                                <path d="M100 20 L40 50 L40 100 Q100 140 160 100 L160 50 Z" fill="none" stroke="currentColor" stroke-width="2" id="shield-viz" />
+                                <circle cx="100" cy="75" r="20" fill="currentColor" opacity="0.2" />
+                                <text x="75" y="80" font-size="10" fill="currentColor">SECURITY</text>
+                            </svg>
+                        </div>
+
+                        <!-- PYTHON EXAMPLE 6 -->
+                        <div class="mt-4 p-4 bg-gray-900 text-white rounded font-mono text-sm">
+                            <p class="text-gray-400 mb-2">Task: Implementing a simple masking policy for PII (Personally Identifiable Information).</p>
+                            <div id="code6" class="space-y-1">
+                                <p><span class="text-green-400"># Sensitive User Data</span></p>
+                                <p>users = [{"name": "Alice", "email": "alice@gmail.com"}]</p>
+                                <p><span class="text-green-400"># Masking Logic for Data Warehouse</span></p>
+                                <p>masked = [{"name": u["name"], "email": "***@***.com"} for u in users]</p>
+                                <p>print(f"Secured records: {masked}")</p>
+                            </div>
+                            <div class="flex gap-2 mt-4">
+                                <button onclick="runPython(6)" class="bg-blue-600 px-4 py-1 rounded">Run</button>
+                                <button onclick="clearPython(6)" class="bg-red-600 px-4 py-1 rounded">Clear</button>
+                            </div>
+                            <div id="console6" class="code-console mt-4 bg-black text-green-400 border-green-800">Console ready...</div>
+                        </div>
+                    </div>
+                </details>
+            </section>
+
+            <!-- LESSON 7: MODERN TRENDS -->
+            <section id="lesson7">
+                <details class="lesson-details">
+                    <summary class="text-2xl font-bold mb-4">LESSON 7: Modern Trends: Data Lakehouse</summary>
+                    <div class="mt-4 space-y-6">
+                        <p>The <strong>Data Lakehouse</strong> combines the structured management of a Warehouse with the low-cost, flexible storage of a Data Lake. Examples include Databricks and Snowflake.</p>
+                        
+                        <div class="p-6 bg-green-100 dark:bg-green-900 border border-green-400 rounded-lg">
+                            <h4 class="font-bold">The Hybrid Future</h4>
+                            <p>Real-time streaming and AI model training now happen directly on top of the warehouse storage layer.</p>
+                        </div>
+
+                        <!-- PYTHON EXAMPLE 7 -->
+                        <div class="mt-4 p-4 bg-gray-900 text-white rounded font-mono text-sm">
+                            <p class="text-gray-400 mb-2">Task: Simulating a stream of real-time data being ingested into a Lakehouse table.</p>
+                            <div id="code7" class="space-y-1">
+                                <p><span class="text-green-400"># Simulating a live data stream</span></p>
+                                <p>import time</p>
+                                <p>stream = ["Event_1", "Event_2", "Event_3"]</p>
+                                <p><span class="text-green-400"># Ingest as it arrives</span></p>
+                                <p>for e in stream:</p>
+                                <p>&nbsp;&nbsp;print(f"Ingesting stream element: {e}")</p>
+                            </div>
+                            <div class="flex gap-2 mt-4">
+                                <button onclick="runPython(7)" class="bg-blue-600 px-4 py-1 rounded">Run</button>
+                                <button onclick="clearPython(7)" class="bg-red-600 px-4 py-1 rounded">Clear</button>
+                            </div>
+                            <div id="console7" class="code-console mt-4 bg-black text-green-400 border-green-800">Console ready...</div>
+                        </div>
+                    </div>
+                </details>
+            </section>
+
+            <!-- GLOSSARY SECTION -->
+            <section id="glossary" class="border-t pt-10">
+                <h2 class="text-3xl font-bold mb-6">Glossary & Flashcards</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                    <!-- FLASHCARDS -->
+                    <div class="term-card p-6 border-2 border-dashed border-blue-400 rounded-xl text-center font-bold text-lg">
+                        Fact Table
+                        <div class="explanation bg-white dark:bg-gray-800 border shadow-xl">The central table in a star schema containing quantitative data for analysis.</div>
+                    </div>
+                    <div class="term-card p-6 border-2 border-dashed border-blue-400 rounded-xl text-center font-bold text-lg">
+                        Dimension Table
+                        <div class="explanation bg-white dark:bg-gray-800 border shadow-xl">Descriptive data that provides context to the facts (e.g., Time, Location).</div>
+                    </div>
+                    <div class="term-card p-6 border-2 border-dashed border-blue-400 rounded-xl text-center font-bold text-lg">
+                        Metadata
+                        <div class="explanation bg-white dark:bg-gray-800 border shadow-xl">Data about data; describes the structure and origin of warehouse contents.</div>
+                    </div>
+                    <div class="term-card p-6 border-2 border-dashed border-blue-400 rounded-xl text-center font-bold text-lg">
+                        Data Mart
+                        <div class="explanation bg-white dark:bg-gray-800 border shadow-xl">A subset of a data warehouse focused on a single department or business line.</div>
+                    </div>
+                    <div class="term-card p-6 border-2 border-dashed border-blue-400 rounded-xl text-center font-bold text-lg">
+                        Granularity
+                        <div class="explanation bg-white dark:bg-gray-800 border shadow-xl">The level of detail stored in a fact table (e.g., daily sales vs. monthly).</div>
+                    </div>
+                    <div class="term-card p-6 border-2 border-dashed border-blue-400 rounded-xl text-center font-bold text-lg">
+                        SCD
+                        <div class="explanation bg-white dark:bg-gray-800 border shadow-xl">Slowly Changing Dimensions: Techniques to track historical changes in dimension data.</div>
+                    </div>
+                </div>
+                
+                <div class="mt-12 p-6 rounded-lg bg-blue-100 dark:bg-blue-900 border border-blue-300">
+                    <h3 class="font-bold mb-2">Retrospection</h3>
+                    <ul class="list-disc pl-5 space-y-2 text-sm">
+                        <li>We learned the 4 key traits of a DW: Subject-Oriented, Integrated, Time-Variant, Non-Volatile.</li>
+                        <li>We distinguished between OLTP (Transaction) and OLAP (Analytical) systems.</li>
+                        <li>We visualized the data flow from source to warehouse.</li>
+                        <li>We covered the ETL process and its vital role in data quality.</li>
+                        <li>We explored Star Schema and the benefits of Columnar Storage.</li>
+                        <li>We discussed the hybrid future of Data Lakehouses.</li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="mt-20 border-t p-10 bg-inherit text-center text-xs opacity-75">
+        <div class="max-w-4xl mx-auto space-y-4">
+            <p><strong>Security Notice:</strong> All hyperlinks in this document are for educational reference. Before visiting external links, verify safety at <a href="https://www.virustotal.com" target="_blank">VirusTotal</a>.</p>
+            <p><strong>Academic Integrity:</strong> Code examples provided are for educational demonstration and should be properly cited in academic work. References to GDPR, CCPA, and HIPAA are overviews and do not constitute legal advice.</p>
+            <div class="flex justify-center gap-4 items-center">
+                <span>Cyber.SoHo Lecture Series v1.0</span>
+                <span>•</span>
+                <span>January 20, 2026</span>
+                <img src="logo.png" alt="Cyber.SoHo Logo" class="h-8 grayscale hover:grayscale-0 transition" onerror="this.style.display='none'">
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // THEME MANAGEMENT
+        function toggleTheme() {
+            const body = document.body;
+            const toggle = document.getElementById('theme-toggle');
+            const label = document.getElementById('theme-label');
+            
+            if (toggle.checked) {
+                body.classList.remove('solarized-light');
+                body.classList.add('solarized-dark');
+                label.innerText = 'Dark';
+            } else {
+                body.classList.remove('solarized-dark');
+                body.classList.add('solarized-light');
+                label.innerText = 'Light';
+            }
+        }
+
+        // EXPAND/COLLAPSE
+        function expandAll() {
+            document.querySelectorAll('.lesson-details').forEach(d => d.open = true);
+        }
+        function collapseAll() {
+            document.querySelectorAll('.lesson-details').forEach(d => d.open = false);
+        }
+
+        // PYTHON SIMULATION ENGINE
+        const pythonSims = {
+            1: [
+                "Initializing connection to data source...",
+                "Extracting: ID 1 Action: play",
+                "Extracting: ID 2 Action: pause",
+                "Transforming data types...",
+                "Loading record into Snowflake/BigQuery...",
+                "Success: 2 records processed."
+            ],
+            2: [
+                "Scanning Source A (CRM)...",
+                "Scanning Source B (Sales DB)...",
+                "Mapping IDs to global schema...",
+                "Final Count: 4 records integrated.",
+                "Warehouse environment refreshed."
+            ],
+            3: [
+                "Extraction triggered...",
+                "Input: ['  apple ', 'ORANGE', ' Banana']",
+                "Applying strip() and lower()...",
+                "Cleaned Output: ['apple', 'orange', 'banana']",
+                "Loading into Staging Area..."
+            ],
+            4: [
+                "Connecting Fact (Sales) to Dim (Product)...",
+                "Joining PID 101 to 'Laptop'...",
+                "Joining PID 102 to 'Mouse'...",
+                "Calculated report generated successfully."
+            ],
+            5: [
+                "Loading column 'Revenue' into memory...",
+                "Summing 100.5, 20.0, 50.75, 10.0...",
+                "Aggregation complete. Results in 0.001s."
+            ],
+            6: [
+                "Applying Masking Policy: PII_Mask...",
+                "Analyzing 'email' field...",
+                "Alice's email hidden as ***@***.com",
+                "Security compliance verified."
+            ],
+            7: [
+                "Ingesting stream element: Event_1",
+                "Ingesting stream element: Event_2",
+                "Ingesting stream element: Event_3",
+                "Lakehouse storage synced. No downtime."
+            ]
+        };
+
+        function runPython(id) {
+            const consoleBox = document.getElementById(`console${id}`);
+            const viz = document.getElementById(`viz${id}`);
+            const fact = document.getElementById('fact-table');
+            const shield = document.getElementById('shield-viz');
+            
+            consoleBox.innerHTML = "";
+            let step = 0;
+            
+            if (viz) viz.classList.add('running');
+            if (fact && id === 4) fact.classList.add('node-active');
+            if (shield && id === 6) shield.classList.add('node-active');
+
+            const interval = setInterval(() => {
+                if (step < pythonSims[id].length) {
+                    const line = document.createElement('div');
+                    line.textContent = `[STEP ${step + 1}] > ${pythonSims[id][step]}`;
+                    consoleBox.appendChild(line);
+                    consoleBox.scrollTop = consoleBox.scrollHeight;
+                    step++;
+                } else {
+                    clearInterval(interval);
+                    if (viz) viz.classList.remove('running');
+                    if (fact) fact.classList.remove('node-active');
+                    if (shield) shield.classList.remove('node-active');
+                }
+            }, 800);
+        }
+
+        function clearPython(id) {
+            const consoleBox = document.getElementById(`console${id}`);
+            consoleBox.innerHTML = "Console cleared. Ready...";
+            const viz = document.getElementById(`viz${id}`);
+            if (viz) viz.classList.remove('running');
+        }
+
+        // SMOOTH SCROLLING
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', e => {
+                e.preventDefault();
+                const targetId = link.getAttribute('href');
+                const targetEl = document.querySelector(targetId);
+                if (targetEl) {
+                    targetEl.scrollIntoView({ behavior: 'smooth' });
+                    const details = targetEl.querySelector('details');
+                    if (details) details.open = true;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
+
+

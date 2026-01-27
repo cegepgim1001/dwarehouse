@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 2: Data Modeling and Warehouse Design</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        solarized: {
+                            base03: '#002b36',
+                            base02: '#073642',
+                            base01: '#586e75',
+                            base00: '#657b83',
+                            base0: '#839496',
+                            base1: '#93a1a1',
+                            base2: '#eee8d5',
+                            base3: '#fdf6e3',
+                            yellow: '#b58900',
+                            orange: '#cb4b16',
+                            red: '#dc322f',
+                            magenta: '#d33682',
+                            violet: '#6c71c4',
+                            blue: '#268bd2',
+                            cyan: '#2aa198',
+                            green: '#859900',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Solarized Light Theme Defaults */
+        body {
+            background-color: #fdf6e3; /* base3 */
+            color: #657b83; /* base00 */
+        }
+        .dark body {
+            background-color: #002b36; /* base03 */
+            color: #839496; /* base0 */
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05);
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #93a1a1;
+            border-radius: 4px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #586e75;
+        }
+
+        /* Code Block Styling */
+        .code-editor {
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        /* Link Styling */
+        a {
+            text-decoration: underline;
+            text-decoration-thickness: 1px;
+            text-underline-offset: 4px;
+            transition: color 0.2s;
+        }
+        a:hover {
+            color: #268bd2; /* solarized blue */
+        }
+
+        /* Flip card styling */
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+        .transform-style-3d {
+            transform-style: preserve-3d;
+        }
+        .backface-hidden {
+            backface-visibility: hidden;
+        }
+        .rotate-y-180 {
+            transform: rotateY(180deg);
+        }
+        .group.flipped .group-\[\.flipped\]\:rotate-y-180 {
+            transform: rotateY(180deg);
+        }
+        /* Hover flip support */
+        .group:hover .group-hover\:rotate-y-180 {
+            transform: rotateY(180deg);
+        }
+
+        /* Tab Transition */
+        .tab-content {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Sidebar Active State */
+        .nav-btn.active {
+            border-left-width: 4px;
+            background-color: rgba(38, 139, 210, 0.1); /* blue with opacity */
+        }
+        .dark .nav-btn.active {
+            background-color: rgba(38, 139, 210, 0.2);
+        }
+    </style>
+</head>
+<body class="transition-colors duration-300 h-screen flex flex-col font-sans overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-solarized-base2 dark:bg-solarized-base02 p-4 shadow-md z-50 transition-colors duration-300 flex-none border-b border-solarized-base1/20">
+        <div class="container mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            
+            <!-- Left: Title -->
+            <div class="flex items-center gap-3">
+                <i class="fas fa-database text-solarized-orange text-2xl"></i>
+                <div>
+                    <h1 class="text-xl font-bold text-solarized-base01 dark:text-solarized-base1">Data Modeling and Warehouse Design</h1>
+                    <p class="text-xs text-solarized-base00 dark:text-solarized-base0">Module 2 @ Data Warehousing and Management</p>
+                </div>
+            </div>
+
+            <!-- Right: Controls -->
+            <div class="flex items-center gap-4">
+                <!-- Theme Switch Only (Expand/Collapse removed) -->
+                <div class="flex items-center gap-2 pl-4">
+                    <i class="fas fa-sun text-solarized-yellow"></i>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="theme-toggle" class="sr-only peer">
+                        <div class="w-11 h-6 bg-solarized-base1 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-solarized-blue/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-solarized-blue"></div>
+                    </label>
+                    <i class="fas fa-moon text-solarized-violet"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Layout Container -->
+    <div class="flex flex-1 overflow-hidden">
+        
+        <!-- Side Menu (Navigation) -->
+        <aside class="w-64 bg-solarized-base2 dark:bg-solarized-base02 border-r border-solarized-base1/20 overflow-y-auto flex-none flex flex-col py-4">
+            <div class="px-4 mb-2 text-xs font-bold uppercase text-solarized-base1 tracking-wider">Course Modules</div>
+            <nav class="space-y-1">
+                <button onclick="switchTab('intro', this)" class="nav-btn active w-full text-left px-6 py-3 text-sm font-semibold hover:bg-solarized-base1/10 transition-colors border-l-4 border-solarized-magenta text-solarized-base01 dark:text-solarized-base1">
+                    Introduction
+                </button>
+                <button onclick="switchTab('l1', this)" class="nav-btn w-full text-left px-6 py-3 text-sm font-semibold hover:bg-solarized-base1/10 transition-colors border-l-4 border-transparent hover:border-solarized-base1 text-solarized-base01 dark:text-solarized-base1">
+                    1. Schemas (Star/Snowflake)
+                </button>
+                <button onclick="switchTab('l2', this)" class="nav-btn w-full text-left px-6 py-3 text-sm font-semibold hover:bg-solarized-base1/10 transition-colors border-l-4 border-transparent hover:border-solarized-base1 text-solarized-base01 dark:text-solarized-base1">
+                    2. Normalization
+                </button>
+                <button onclick="switchTab('l3', this)" class="nav-btn w-full text-left px-6 py-3 text-sm font-semibold hover:bg-solarized-base1/10 transition-colors border-l-4 border-transparent hover:border-solarized-base1 text-solarized-base01 dark:text-solarized-base1">
+                    3. SCDs (Data History)
+                </button>
+                <button onclick="switchTab('l4', this)" class="nav-btn w-full text-left px-6 py-3 text-sm font-semibold hover:bg-solarized-base1/10 transition-colors border-l-4 border-transparent hover:border-solarized-base1 text-solarized-base01 dark:text-solarized-base1">
+                    4. Data Models
+                </button>
+                <button onclick="switchTab('l5', this)" class="nav-btn w-full text-left px-6 py-3 text-sm font-semibold hover:bg-solarized-base1/10 transition-colors border-l-4 border-transparent hover:border-solarized-base1 text-solarized-base01 dark:text-solarized-base1">
+                    5. Surrogate Keys
+                </button>
+                <button onclick="switchTab('summary', this)" class="nav-btn w-full text-left px-6 py-3 text-sm font-semibold hover:bg-solarized-base1/10 transition-colors border-l-4 border-transparent hover:border-solarized-base1 text-solarized-base01 dark:text-solarized-base1">
+                    Key Terms Summary
+                </button>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main id="content-area" class="flex-1 overflow-y-auto bg-solarized-base3 dark:bg-solarized-base03 p-8 relative">
+            
+            <!-- Introduction Section -->
+            <section id="section-intro" class="tab-content max-w-4xl mx-auto">
+                <div class="bg-solarized-base2 dark:bg-solarized-base02 p-6 rounded-lg shadow-lg border-l-4 border-solarized-magenta transition-colors duration-300">
+                    <h2 class="text-2xl font-bold text-solarized-magenta mb-4">Introduction to Data Warehousing</h2>
+                    <p class="mb-4 leading-relaxed">
+                        <strong>Data Modeling and Warehouse Design</strong> serves as the architectural foundation for modern information systems. This module explores the blueprint-making skills required to build systems capable of analyzing billions of records for organizations such as major retailers, streaming services, and financial institutions.
+                    </p>
+                    <p class="leading-relaxed">
+                        The following lessons cover five essential concepts—Schemas, Normalization, SCDs, Modeling Levels, and Surrogate Keys—that provide the necessary framework for designing robust and efficient data warehouses. These principles are actively applied by data engineers and analysts across the industry.
+                    </p>
+                    <div class="mt-4 flex gap-2 flex-wrap text-xs">
+                        <span class="bg-solarized-cyan text-white px-2 py-1 rounded">Schemas</span>
+                        <span class="bg-solarized-blue text-white px-2 py-1 rounded">Normalization</span>
+                        <span class="bg-solarized-green text-white px-2 py-1 rounded">SCDs</span>
+                        <span class="bg-solarized-violet text-white px-2 py-1 rounded">Keys</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Lesson 1 -->
+            <section id="section-l1" class="tab-content hidden max-w-4xl mx-auto space-y-6">
+                <div class="border-b border-solarized-base1/20 pb-4 mb-4">
+                     <h3 class="text-2xl font-bold text-solarized-blue"><span class="mr-2">Lesson 1:</span> Star, Snowflake, and Galaxy Schemas</h3>
+                </div>
+                
+                <div class="prose dark:prose-invert max-w-none">
+                    <p>When we talk about data warehouse schemas, we're essentially discussing how we organize and structure data for optimal querying and analysis. The three main schema types—star, snowflake, and galaxy—each have distinct characteristics suitable for different business scenarios.</p>
+                </div>
+
+                <!-- Star Schema -->
+                <div class="grid md:grid-cols-2 gap-6 items-center">
+                    <div>
+                        <h4 class="text-lg font-bold text-solarized-orange mb-2"><i class="fas fa-star mr-2"></i>Star Schema</h4>
+                        <p class="text-sm mb-2">The simplest and most widely used design. A central <strong>Fact Table</strong> (metrics) is connected to denormalized <strong>Dimension Tables</strong> (attributes).</p>
+                        <ul class="list-disc list-inside text-sm marker:text-solarized-orange pl-2">
+                            <li>Fast queries (fewer joins).</li>
+                            <li>Simpler to understand.</li>
+                            <li>Higher data redundancy (denormalized).</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white dark:bg-solarized-base03 p-4 rounded border border-solarized-base1/20 flex justify-center">
+                        <svg width="300" height="200" viewBox="0 0 300 200">
+                            <rect x="100" y="75" width="100" height="50" rx="5" fill="#cb4b16" opacity="0.8"/>
+                            <text x="150" y="105" text-anchor="middle" fill="white" font-size="12" font-weight="bold">Fact Sales</text>
+                            <rect x="110" y="10" width="80" height="40" rx="4" fill="#268bd2" opacity="0.7"/>
+                            <text x="150" y="35" text-anchor="middle" fill="white" font-size="10">Dim Date</text>
+                            <line x1="150" y1="50" x2="150" y2="75" stroke="#93a1a1" stroke-width="2"/>
+                            <rect x="10" y="80" width="80" height="40" rx="4" fill="#268bd2" opacity="0.7"/>
+                            <text x="50" y="105" text-anchor="middle" fill="white" font-size="10">Dim Product</text>
+                            <line x1="90" y1="100" x2="100" y2="100" stroke="#93a1a1" stroke-width="2"/>
+                            <rect x="210" y="80" width="80" height="40" rx="4" fill="#268bd2" opacity="0.7"/>
+                            <text x="250" y="105" text-anchor="middle" fill="white" font-size="10">Dim Store</text>
+                            <line x1="200" y1="100" x2="210" y2="100" stroke="#93a1a1" stroke-width="2"/>
+                            <rect x="110" y="150" width="80" height="40" rx="4" fill="#268bd2" opacity="0.7"/>
+                            <text x="150" y="175" text-anchor="middle" fill="white" font-size="10">Dim Customer</text>
+                            <line x1="150" y1="125" x2="150" y2="150" stroke="#93a1a1" stroke-width="2"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Snowflake Schema -->
+                <div class="grid md:grid-cols-2 gap-6 items-center">
+                    <div class="order-2 md:order-1 bg-white dark:bg-solarized-base03 p-4 rounded border border-solarized-base1/20 flex justify-center">
+                         <svg width="300" height="200" viewBox="0 0 300 200">
+                            <rect x="100" y="75" width="100" height="50" rx="5" fill="#cb4b16" opacity="0.8"/>
+                            <text x="150" y="105" text-anchor="middle" fill="white" font-size="12" font-weight="bold">Fact Sales</text>
+                            <rect x="10" y="80" width="70" height="30" rx="4" fill="#268bd2" opacity="0.7"/>
+                            <text x="45" y="100" text-anchor="middle" fill="white" font-size="9">Dim Product</text>
+                            <line x1="80" y1="100" x2="100" y2="100" stroke="#93a1a1" stroke-width="2"/>
+                            <rect x="10" y="20" width="70" height="30" rx="4" fill="#2aa198" opacity="0.7"/>
+                            <text x="45" y="40" text-anchor="middle" fill="white" font-size="9">Dim Category</text>
+                            <line x1="45" y1="50" x2="45" y2="80" stroke="#93a1a1" stroke-width="2" stroke-dasharray="4"/>
+                        </svg>
+                    </div>
+                    <div class="order-1 md:order-2">
+                        <h4 class="text-lg font-bold text-solarized-cyan mb-2"><i class="fas fa-snowflake mr-2"></i>Snowflake Schema</h4>
+                        <p class="text-sm mb-2">An extension of the star schema where dimension tables are normalized (broken down into sub-dimensions).</p>
+                        <ul class="list-disc list-inside text-sm marker:text-solarized-cyan pl-2">
+                            <li>Reduces data redundancy (less disk space).</li>
+                            <li>More complex queries (more joins).</li>
+                            <li>Higher maintenance overhead.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Galaxy Schema -->
+                <div class="grid md:grid-cols-2 gap-6 items-center">
+                     <div>
+                        <h4 class="text-lg font-bold text-solarized-violet mb-2"><i class="fas fa-globe mr-2"></i>Galaxy Schema (Fact Constellation)</h4>
+                        <p class="text-sm mb-2">Contains multiple Fact tables that share common Dimension tables. Used for more complex data warehouses.</p>
+                        <ul class="list-disc list-inside text-sm marker:text-solarized-violet pl-2">
+                            <li>Supports multiple business processes.</li>
+                            <li>Dimensions (like Date) are shared (conformed).</li>
+                            <li>Most flexible but complex design.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white dark:bg-solarized-base03 p-4 rounded border border-solarized-base1/20 flex justify-center">
+                         <svg width="300" height="200" viewBox="0 0 300 200">
+                            <rect x="50" y="80" width="80" height="40" rx="5" fill="#cb4b16" opacity="0.8"/>
+                            <text x="90" y="105" text-anchor="middle" fill="white" font-size="10" font-weight="bold">Fact Sales</text>
+                            <rect x="170" y="80" width="80" height="40" rx="5" fill="#d33682" opacity="0.8"/>
+                            <text x="210" y="105" text-anchor="middle" fill="white" font-size="10" font-weight="bold">Fact Shipping</text>
+                            <rect x="110" y="20" width="80" height="30" rx="4" fill="#268bd2" opacity="0.7"/>
+                            <text x="150" y="40" text-anchor="middle" fill="white" font-size="10">Dim Product</text>
+                            <line x1="130" y1="50" x2="110" y2="80" stroke="#93a1a1" stroke-width="2"/>
+                            <line x1="170" y1="50" x2="190" y2="80" stroke="#93a1a1" stroke-width="2"/>
+                            <rect x="30" y="150" width="70" height="30" rx="4" fill="#268bd2" opacity="0.7"/>
+                            <text x="65" y="170" text-anchor="middle" fill="white" font-size="9">Dim Store</text>
+                            <line x1="65" y1="150" x2="70" y2="120" stroke="#93a1a1" stroke-width="2"/>
+                            <rect x="200" y="150" width="70" height="30" rx="4" fill="#268bd2" opacity="0.7"/>
+                            <text x="235" y="170" text-anchor="middle" fill="white" font-size="9">Dim Shipper</text>
+                            <line x1="235" y1="150" x2="230" y2="120" stroke="#93a1a1" stroke-width="2"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Python Lab -->
+                <div class="bg-solarized-base3 dark:bg-solarized-base03 rounded border border-solarized-base1/30 mt-6 p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold text-solarized-magenta uppercase tracking-wider">Python Lab: Star Schema Join</span>
+                        <div class="flex gap-2">
+                            <button onclick="runPython('star')" class="bg-solarized-green text-white text-xs px-3 py-1 rounded hover:bg-opacity-80"><i class="fas fa-play mr-1"></i>Run</button>
+                            <button onclick="clearPython('star')" class="bg-solarized-red text-white text-xs px-3 py-1 rounded hover:bg-opacity-80"><i class="fas fa-trash mr-1"></i>Clear</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div class="relative">
+                            <div class="absolute top-0 left-0 bg-solarized-base2 dark:bg-solarized-base02 text-xs px-2 py-1 rounded-br">code.py</div>
+                            <textarea id="code-star" readonly class="code-editor w-full h-48 bg-solarized-base2 dark:bg-solarized-base02 text-solarized-base00 dark:text-solarized-base0 p-4 pt-8 text-xs rounded border-none focus:ring-0 resize-none">
+import pandas as pd
+# 1. Fact Table (Transactions)
+fact_sales = pd.DataFrame({'date_id': [101, 102], 'prod_id': [1, 2], 'amount': [500, 750]})
+# 2. Dimension Table (Product Info)
+dim_product = pd.DataFrame({'prod_id': [1, 2], 'name': ['Laptop', 'Phone'], 'category': ['Electronics', 'Electronics']})
+# 3. Perform the Join
+print("Merging Sales with Product Data...")
+star_schema = pd.merge(fact_sales, dim_product, on='prod_id')
+print("Resulting Star Schema Table:")
+print(star_schema)
+                            </textarea>
+                        </div>
+                        <div class="relative">
+                            <div class="absolute top-0 left-0 bg-black text-green-400 text-xs px-2 py-1 rounded-br">terminal</div>
+                            <div id="console-star" class="w-full h-48 bg-black text-green-400 p-4 pt-8 text-xs rounded font-mono overflow-y-auto">> Ready to run...</div>
+                        </div>
+                    </div>
+                    <div id="viz-star" class="mt-4 h-24 bg-white dark:bg-black/20 rounded flex items-center justify-center border border-dashed border-solarized-base1 transition-all">
+                        <span class="text-xs text-solarized-base1 italic">Visualization will appear here upon running code...</span>
+                    </div>
+                </div>
+
+                <!-- Quiz -->
+                <div class="mt-8 border-t border-solarized-base1/20 pt-6">
+                    <h4 class="text-lg font-bold text-solarized-violet mb-4"><i class="fas fa-question-circle mr-2"></i>Quick Quiz</h4>
+                    <div class="bg-solarized-base2 dark:bg-solarized-base02 p-4 rounded-lg">
+                        <p class="font-semibold mb-3">Which schema type typically provides the fastest query performance due to fewer joins?</p>
+                        <div class="flex flex-col gap-2">
+                            <button onclick="checkAnswer(this, true)" class="text-left px-4 py-2 bg-white dark:bg-solarized-base03 rounded hover:bg-solarized-base3 transition border border-transparent">A) Star Schema</button>
+                            <button onclick="checkAnswer(this, false)" class="text-left px-4 py-2 bg-white dark:bg-solarized-base03 rounded hover:bg-solarized-base3 transition border border-transparent">B) Snowflake Schema</button>
+                            <button onclick="checkAnswer(this, false)" class="text-left px-4 py-2 bg-white dark:bg-solarized-base03 rounded hover:bg-solarized-base3 transition border border-transparent">C) Galaxy Schema</button>
+                        </div>
+                        <div class="mt-3 hidden feedback text-sm font-bold"></div>
+                    </div>
+                </div>
+
+                <!-- Links -->
+                <div class="mt-6">
+                    <h5 class="text-sm font-bold uppercase text-solarized-base1 mb-2">Further Reading (External)</h5>
+                    <ul class="text-xs space-y-1">
+                        <li><a href="https://www.geeksforgeeks.org/difference-between-star-schema-and-snowflake-schema/" target="_blank" rel="noopener noreferrer">Schemas: Star vs Galaxy vs Snowflake</a></li>
+                        <li><a href="https://www.montecarlodata.com/blog-data-warehouse-schemas/" target="_blank" rel="noopener noreferrer">Monte Carlo: Data Warehouse Schemas</a></li>
+                        <li><a href="https://www.youtube.com/watch?v=u1-BY1-ezF4" target="_blank" rel="noopener noreferrer">Video: Schema Explanation</a></li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Lesson 2 -->
+            <section id="section-l2" class="tab-content hidden max-w-4xl mx-auto space-y-6">
+                 <div class="border-b border-solarized-base1/20 pb-4 mb-4">
+                    <h3 class="text-2xl font-bold text-solarized-blue"><span class="mr-2">Lesson 2:</span> Normalization vs. Denormalization</h3>
+                </div>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- Normalization -->
+                    <div class="bg-white dark:bg-solarized-base03 p-4 rounded shadow-sm border-l-4 border-solarized-green">
+                        <h4 class="text-lg font-bold text-solarized-green mb-2">Normalization (OLTP)</h4>
+                        <p class="text-sm mb-4">Focuses on minimizing redundancy by organizing data into multiple related tables. Best for transactional systems (banking, ordering) where write speed and data integrity are key.</p>
+                        <div class="text-xs font-mono bg-solarized-base3 dark:bg-black p-2 rounded">
+                            Customer Table: [ID, Name, Zip]<br>
+                            Zip Table: [Zip, City, State]
+                        </div>
+                    </div>
+                    <!-- Denormalization -->
+                    <div class="bg-white dark:bg-solarized-base03 p-4 rounded shadow-sm border-l-4 border-solarized-red">
+                        <h4 class="text-lg font-bold text-solarized-red mb-2">Denormalization (OLAP)</h4>
+                        <p class="text-sm mb-4">Combines data into fewer tables to speed up read operations. Best for data warehousing and analytics where we want to avoid joins.</p>
+                        <div class="text-xs font-mono bg-solarized-base3 dark:bg-black p-2 rounded">
+                            Customer Table: [ID, Name, City, State]
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Python Lab: Normalization -->
+                <div class="bg-solarized-base3 dark:bg-solarized-base03 rounded border border-solarized-base1/30 mt-6 p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold text-solarized-blue uppercase tracking-wider">Python Lab: Denormalization Logic</span>
+                        <div class="flex gap-2">
+                            <button onclick="runPython('norm')" class="bg-solarized-green text-white text-xs px-3 py-1 rounded hover:bg-opacity-80"><i class="fas fa-play mr-1"></i>Run</button>
+                            <button onclick="clearPython('norm')" class="bg-solarized-red text-white text-xs px-3 py-1 rounded hover:bg-opacity-80"><i class="fas fa-trash mr-1"></i>Clear</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div class="relative">
+                            <div class="absolute top-0 left-0 bg-solarized-base2 dark:bg-solarized-base02 text-xs px-2 py-1 rounded-br">code.py</div>
+                            <textarea id="code-norm" readonly class="code-editor w-full h-48 bg-solarized-base2 dark:bg-solarized-base02 text-solarized-base00 dark:text-solarized-base0 p-4 pt-8 text-xs rounded border-none focus:ring-0 resize-none">
+# Task: Convert Normalized Tables (OLTP) to Denormalized (OLAP)
+# We join separate tables to create a single "wide" table for analytics.
+
+import pandas as pd
+
+# 1. Normalized Data (Separate Tables)
+users = pd.DataFrame({
+    'user_id': [1, 2],
+    'name': ['Alice', 'Bob'],
+    'city': ['NY', 'LA']
+})
+
+orders = pd.DataFrame({
+    'order_id': [101, 102, 103],
+    'user_id': [1, 2, 1],
+    'amount': [50, 100, 25]
+})
+
+# 2. Denormalization Process
+print("Denormalizing data for Analytics...")
+denorm_df = pd.merge(orders, users, on='user_id')
+
+print("Denormalized Output:")
+print(denorm_df[['order_id', 'amount', 'name', 'city']])
+                            </textarea>
+                        </div>
+                        <div class="relative">
+                            <div class="absolute top-0 left-0 bg-black text-green-400 text-xs px-2 py-1 rounded-br">terminal</div>
+                            <div id="console-norm" class="w-full h-48 bg-black text-green-400 p-4 pt-8 text-xs rounded font-mono overflow-y-auto">> Ready to run...</div>
+                        </div>
+                    </div>
+                    <div id="viz-norm" class="mt-4 min-h-[100px] bg-white dark:bg-black/20 rounded flex flex-col items-center justify-center border border-dashed border-solarized-base1 transition-all p-4">
+                        <span class="text-xs text-solarized-base1 italic">Visualization will appear here upon running code...</span>
+                    </div>
+                </div>
+
+                <!-- Flashcard -->
+                <div class="mt-8 flex justify-center">
+                    <div class="perspective-1000 w-full max-w-md h-48 cursor-pointer group" onclick="this.classList.toggle('flipped')">
+                        <div class="relative w-full h-full text-center transition-transform duration-700 transform-style-3d group-[.flipped]:rotate-y-180">
+                            <div class="absolute w-full h-full backface-hidden bg-solarized-blue text-white rounded-lg shadow-lg flex flex-col justify-center items-center p-6">
+                                <h5 class="text-xl font-bold">Concept Check</h5>
+                                <p class="mt-4">Which approach is preferred for Data Warehousing?</p>
+                                <p class="text-xs mt-4 opacity-75">(Click to flip)</p>
+                            </div>
+                            <div class="absolute w-full h-full backface-hidden bg-solarized-yellow text-white rounded-lg shadow-lg rotate-y-180 flex flex-col justify-center items-center p-6">
+                                <h5 class="text-xl font-bold">Denormalization</h5>
+                                <p class="mt-4 text-sm">Because it reduces the number of joins required for queries, significantly speeding up read-heavy analytical workloads.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quiz -->
+                <div class="mt-8 border-t border-solarized-base1/20 pt-6">
+                    <h4 class="text-lg font-bold text-solarized-violet mb-4"><i class="fas fa-question-circle mr-2"></i>Review Quiz: Normalization</h4>
+                    <div class="space-y-4">
+                        <div class="bg-solarized-base2 dark:bg-solarized-base02 p-4 rounded-lg">
+                            <p class="font-semibold mb-3">1. Normalization is primarily designed to:</p>
+                            <div class="flex flex-col gap-2">
+                                <button onclick="checkAnswer(this, true)" class="text-left px-4 py-2 bg-white dark:bg-solarized-base03 rounded hover:bg-solarized-base3 transition border border-transparent">A) Minimize data redundancy</button>
+                                <button onclick="checkAnswer(this, false)" class="text-left px-4 py-2 bg-white dark:bg-solarized-base03 rounded hover:bg-solarized-base3 transition border border-transparent">B) Improve read performance for analytics</button>
+                            </div>
+                            <div class="mt-3 hidden feedback text-sm font-bold"></div>
+                        </div>
+                        <div class="bg-solarized-base2 dark:bg-solarized-base02 p-4 rounded-lg">
+                            <p class="font-semibold mb-3">2. Which environment typically requires Denormalization?</p>
+                            <div class="flex flex-col gap-2">
+                                <button onclick="checkAnswer(this, false)" class="text-left px-4 py-2 bg-white dark:bg-solarized-base03 rounded hover:bg-solarized-base3 transition border border-transparent">A) OLTP (Transactional)</button>
+                                <button onclick="checkAnswer(this, true)" class="text-left px-4 py-2 bg-white dark:bg-solarized-base03 rounded hover:bg-solarized-base3 transition border border-transparent">B) OLAP (Analytical)</button>
+                            </div>
+                            <div class="mt-3 hidden feedback text-sm font-bold"></div>
+                        </div>
+                    </div>
+                </div>
+                 <div class="mt-6">
+                    <ul class="text-xs space-y-1">
+                        <li><a href="https://blog.purestorage.com/purely-technical/denormalized-vs-normalized-data/" target="_blank" rel="noopener noreferrer">PureStorage: Denormalized vs Normalized</a></li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Lesson 3 -->
+            <section id="section-l3" class="tab-content hidden max-w-4xl mx-auto space-y-6">
+                <div class="border-b border-solarized-base1/20 pb-4 mb-4">
+                    <h3 class="text-2xl font-bold text-solarized-blue"><span class="mr-2">Lesson 3:</span> Slowly Changing Dimensions (SCD)</h3>
+                </div>
+                <p>Data isn't static. Customers move, products change names, and managers change departments. We handle these changes using SCD types.</p>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm text-left">
+                        <thead class="bg-solarized-base2 dark:bg-solarized-base03 uppercase text-xs font-bold">
+                            <tr><th class="px-4 py-3">Type</th><th class="px-4 py-3">Action</th><th class="px-4 py-3">Result</th><th class="px-4 py-3">History?</th></tr>
+                        </thead>
+                        <tbody class="divide-y divide-solarized-base1/20">
+                            <tr><td class="px-4 py-3 font-bold text-solarized-red">Type 0</td><td class="px-4 py-3">No Update</td><td class="px-4 py-3">Ignore changes.</td><td class="px-4 py-3">No</td></tr>
+                            <tr><td class="px-4 py-3 font-bold text-solarized-orange">Type 1</td><td class="px-4 py-3">Overwrite</td><td class="px-4 py-3">Update.</td><td class="px-4 py-3">Lost</td></tr>
+                            <tr><td class="px-4 py-3 font-bold text-solarized-green">Type 2</td><td class="px-4 py-3">Add Row</td><td class="px-4 py-3">Insert new.</td><td class="px-4 py-3">Kept</td></tr>
+                            <tr><td class="px-4 py-3 font-bold text-solarized-blue">Type 3</td><td class="px-4 py-3">Add Column</td><td class="px-4 py-3">Add Col.</td><td class="px-4 py-3">Limited</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Python Lab -->
+                <div class="bg-solarized-base3 dark:bg-solarized-base03 rounded border border-solarized-base1/30 mt-6 p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold text-solarized-green uppercase tracking-wider">Python Lab: SCD Type 2 Logic</span>
+                        <div class="flex gap-2">
+                            <button onclick="runPython('scd')" class="bg-solarized-green text-white text-xs px-3 py-1 rounded hover:bg-opacity-80"><i class="fas fa-play mr-1"></i>Run</button>
+                            <button onclick="clearPython('scd')" class="bg-solarized-red text-white text-xs px-3 py-1 rounded hover:bg-opacity-80"><i class="fas fa-trash mr-1"></i>Clear</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div class="relative">
+                            <div class="absolute top-0 left-0 bg-solarized-base2 dark:bg-solarized-base02 text-xs px-2 py-1 rounded-br">code.py</div>
+                            <textarea id="code-scd" readonly class="code-editor w-full h-48 bg-solarized-base2 dark:bg-solarized-base02 text-solarized-base00 dark:text-solarized-base0 p-4 pt-8 text-xs rounded border-none focus:ring-0 resize-none">
+def update_scd2(customer_db, customer_id, new_state):
+    print(f"Checking update for Customer {customer_id}...")
+    for row in customer_db:
+        if row['id'] == customer_id and row['is_active']:
+            print(f"Closing old record (State: {row['state']})")
+            row['is_active'] = False
+            row['end_date'] = '2023-10-27'
+    print(f"Inserting new record (State: {new_state})")
+    new_row = {'id': customer_id, 'state': new_state, 'is_active': True, 'start_date': '2023-10-27', 'end_date': None}
+    customer_db.append(new_row)
+    return customer_db
+
+data = [{'id': 1, 'state': 'NY', 'is_active': True, 'start': '2022-01-01'}]
+update_scd2(data, 1, 'CA')
+                            </textarea>
+                        </div>
+                        <div class="relative">
+                            <div class="absolute top-0 left-0 bg-black text-green-400 text-xs px-2 py-1 rounded-br">terminal</div>
+                            <div id="console-scd" class="w-full h-48 bg-black text-green-400 p-4 pt-8 text-xs rounded font-mono overflow-y-auto">> Ready to run...</div>
+                        </div>
+                    </div>
+                    <div id="viz-scd" class="mt-4 min-h-[100px] bg-white dark:bg-black/20 rounded flex flex-col items-center justify-center border border-dashed border-solarized-base1 transition-all p-4">
+                        <span class="text-xs text-solarized-base1 italic">Visualization will appear here upon running code...</span>
+                    </div>
+                </div>
+
+                <!-- Quiz -->
+                <div class="mt-8 border-t border-solarized-base1/20 pt-6">
+                    <h4 class="text-lg font-bold text-solarized-violet mb-4"><i class="fas fa-question-circle mr-2"></i>Review Quiz: SCDs</h4>
+                    <div class="space-y-4">
+                        <div class="bg-solarized-base2 dark:bg-solarized-base02 p-4 rounded-lg">
+                            <p class="font-semibold mb-3">1. Which SCD Type preserves the full history of changes by adding a new row?</p>
+                            <div class="flex flex-col gap-2">
+                                <button onclick="checkAnswer(this, false)" class="text-left px-4 py-2 bg-white dark:bg-solarized-base03 rounded hover:bg-solarized-base3 transition border border-transparent">A) SCD Type 1</button>
+                                <button onclick="checkAnswer(this, true)" class="text-left px-4 py-2 bg-white dark:bg-solarized-base03 rounded hover:bg-solarized-base3 transition border border-transparent">B) SCD Type 2</button>
+                            </div>
+                            <div class="mt-3 hidden feedback text-sm font-bold"></div>
+                        </div>
+                        <div class="bg-solarized-base2 dark:bg-solarized-base02 p-4 rounded-lg">
+                            <p class="font-semibold mb-3">2. If you only need the current value and don't care about previous values, use:</p>
+                            <div class="flex flex-col gap-2">
+                                <button onclick="checkAnswer(this, true)" class="text-left px-4 py-2 bg-white dark:bg-solarized-base03 rounded hover:bg-solarized-base3 transition border border-transparent">A) SCD Type 1</button>
+                                <button onclick="checkAnswer(this, false)" class="text-left px-4 py-2 bg-white dark:bg-solarized-base03 rounded hover:bg-solarized-base3 transition border border-transparent">B) SCD Type 3</button>
+                            </div>
+                            <div class="mt-3 hidden feedback text-sm font-bold"></div>
+                        </div>
+                    </div>
+                </div>
+                 <div class="mt-6">
+                    <ul class="text-xs space-y-1">
+                        <li><a href="https://hevodata.com/learn/slowly-changing-dimensions/" target="_blank" rel="noopener noreferrer">Hevo Data: SCDs</a></li>
+                        <li><a href="https://www.datacamp.com/tutorial/mastering-slowly-changing-dimensions-scd" target="_blank" rel="noopener noreferrer">DataCamp: Mastering SCDs</a></li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Lesson 4 -->
+            <section id="section-l4" class="tab-content hidden max-w-4xl mx-auto space-y-6">
+                <div class="border-b border-solarized-base1/20 pb-4 mb-4">
+                    <h3 class="text-2xl font-bold text-solarized-blue"><span class="mr-2">Lesson 4:</span> Conceptual vs. Logical vs. Physical Models</h3>
+                </div>
+                <div class="grid md:grid-cols-3 gap-4 text-center">
+                    <!-- Conceptual -->
+                    <div class="p-4 border border-solarized-base1/30 rounded transition transform hover:scale-105 hover:shadow-xl hover:bg-solarized-base2/50 dark:hover:bg-solarized-base03/80 cursor-default group/card">
+                        <i class="fas fa-lightbulb text-3xl text-solarized-yellow mb-2 group-hover/card:animate-bounce"></i>
+                        <h4 class="font-bold text-solarized-base01 dark:text-solarized-base1">Conceptual</h4>
+                        <p class="text-xs mt-2">High-level. "What are we building?" Audience: Stakeholders.</p>
+                        <p class="text-[10px] mt-2 text-solarized-base00 group-hover/card:text-solarized-blue font-bold transition">Entities & Relationships only.</p>
+                    </div>
+                    <!-- Logical -->
+                    <div class="p-4 border border-solarized-base1/30 rounded transition transform hover:scale-105 hover:shadow-xl hover:bg-solarized-base2/50 dark:hover:bg-solarized-base03/80 cursor-default group/card">
+                        <i class="fas fa-project-diagram text-3xl text-solarized-orange mb-2 group-hover/card:animate-pulse"></i>
+                        <h4 class="font-bold text-solarized-base01 dark:text-solarized-base1">Logical</h4>
+                        <p class="text-xs mt-2">Detail-oriented. "How is it structured?" Audience: Architects.</p>
+                        <p class="text-[10px] mt-2 text-solarized-base00 group-hover/card:text-solarized-blue font-bold transition">Attributes, Keys (PK/FK).</p>
+                    </div>
+                    <!-- Physical -->
+                    <div class="p-4 border border-solarized-base1/30 rounded transition transform hover:scale-105 hover:shadow-xl hover:bg-solarized-base2/50 dark:hover:bg-solarized-base03/80 cursor-default group/card">
+                        <i class="fas fa-server text-3xl text-solarized-blue mb-2 group-hover/card:rotate-12 transition"></i>
+                        <h4 class="font-bold text-solarized-base01 dark:text-solarized-base1">Physical</h4>
+                        <p class="text-xs mt-2">Implementation. "How is it stored?" Audience: DBAs.</p>
+                        <p class="text-[10px] mt-2 text-solarized-base00 group-hover/card:text-solarized-blue font-bold transition">Data Types, Indexes, Partitions.</p>
+                    </div>
+                </div>
+
+                <!-- Python Lab -->
+                <div class="bg-solarized-base3 dark:bg-solarized-base03 rounded border border-solarized-base1/30 mt-6 p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold text-solarized-orange uppercase tracking-wider">Python Lab: Logical to Physical</span>
+                        <div class="flex gap-2">
+                            <button onclick="runPython('models')" class="bg-solarized-green text-white text-xs px-3 py-1 rounded hover:bg-opacity-80"><i class="fas fa-play mr-1"></i>Run</button>
+                            <button onclick="clearPython('models')" class="bg-solarized-red text-white text-xs px-3 py-1 rounded hover:bg-opacity-80"><i class="fas fa-trash mr-1"></i>Clear</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div class="relative">
+                            <div class="absolute top-0 left-0 bg-solarized-base2 dark:bg-solarized-base02 text-xs px-2 py-1 rounded-br">code.py</div>
+                            <textarea id="code-models" readonly class="code-editor w-full h-48 bg-solarized-base2 dark:bg-solarized-base02 text-solarized-base00 dark:text-solarized-base0 p-4 pt-8 text-xs rounded border-none focus:ring-0 resize-none">
+def generate_ddl(table_name, logical_fields):
+    print(f"Defining Physical Model for: {table_name}")
+    sql = f"CREATE TABLE {table_name} (\n"
+    type_map = {'string': 'VARCHAR(255)', 'int': 'INTEGER', 'date': 'DATETIME'}
+    for field, l_type in logical_fields.items():
+        p_type = type_map.get(l_type, 'TEXT')
+        print(f"Mapping {field} ({l_type}) -> {p_type}")
+        sql += f"    {field} {p_type},\n"
+    sql = sql.rstrip(",\n") + "\n);"
+    return sql
+
+logical = {'id': 'int', 'username': 'string', 'joined': 'date'}
+ddl = generate_ddl('Users', logical)
+print("Generated DDL:")
+print(ddl)
+                            </textarea>
+                        </div>
+                        <div class="relative">
+                            <div class="absolute top-0 left-0 bg-black text-green-400 text-xs px-2 py-1 rounded-br">terminal</div>
+                            <div id="console-models" class="w-full h-48 bg-black text-green-400 p-4 pt-8 text-xs rounded font-mono overflow-y-auto">> Ready to run...</div>
+                        </div>
+                    </div>
+                    <div id="viz-models" class="mt-4 min-h-[100px] bg-white dark:bg-black/20 rounded flex flex-col items-center justify-center border border-dashed border-solarized-base1 transition-all p-4">
+                        <span class="text-xs text-solarized-base1 italic">Visualization will appear here upon running code...</span>
+                    </div>
+                </div>
+
+                <!-- Quiz -->
+                <div class="mt-8 border-t border-solarized-base1/20 pt-6">
+                    <h4 class="text-lg font-bold text-solarized-violet mb-4"><i class="fas fa-question-circle mr-2"></i>Review Quiz: Data Models</h4>
+                    <div class="space-y-4">
+                        <div class="bg-solarized-base2 dark:bg-solarized-base02 p-4 rounded-lg">
+                            <p class="font-semibold mb-3">1. Which data model contains database-specific details like VARCHAR lengths and Indexes?</p>
+                            <div class="flex flex-col gap-2">
+                                <button onclick="checkAnswer(this, true)" class="text-left px-4 py-2 bg-white dark:bg-solarized-base03 rounded hover:bg-solarized-base3 transition border border-transparent">A) Physical Model</button>
+                                <button onclick="checkAnswer(this, false)" class="text-left px-4 py-2 bg-white dark:bg-solarized-base03 rounded hover:bg-solarized-base3 transition border border-transparent">B) Logical Model</button>
+                            </div>
+                            <div class="mt-3 hidden feedback text-sm font-bold"></div>
+                        </div>
+                        <div class="bg-solarized-base2 dark:bg-solarized-base02 p-4 rounded-lg">
+                            <p class="font-semibold mb-3">2. The target audience for a Conceptual model is primarily:</p>
+                            <div class="flex flex-col gap-2">
+                                <button onclick="checkAnswer(this, false)" class="text-left px-4 py-2 bg-white dark:bg-solarized-base03 rounded hover:bg-solarized-base3 transition border border-transparent">A) Database Administrators</button>
+                                <button onclick="checkAnswer(this, true)" class="text-left px-4 py-2 bg-white dark:bg-solarized-base03 rounded hover:bg-solarized-base3 transition border border-transparent">B) Business Stakeholders</button>
+                            </div>
+                            <div class="mt-3 hidden feedback text-sm font-bold"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <h5 class="text-sm font-bold uppercase text-solarized-base1 mb-2">Links</h5>
+                    <ul class="text-xs space-y-1">
+                         <li><a href="https://www.visual-paradigm.com/tutorials/compare-logical-physical-erd.jsp" target="_blank" rel="noopener noreferrer">Visual Paradigm: Logical vs Physical</a></li>
+                         <li><a href="https://online.visual-paradigm.com/knowledge/visual-modeling/conceptual-vs-logical-vs-physical-data-model" target="_blank" rel="noopener noreferrer">Conceptual vs Logical vs Physical</a></li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Lesson 5 -->
+            <section id="section-l5" class="tab-content hidden max-w-4xl mx-auto space-y-6">
+                <div class="border-b border-solarized-base1/20 pb-4 mb-4">
+                    <h3 class="text-2xl font-bold text-solarized-blue"><span class="mr-2">Lesson 5:</span> Surrogate Keys</h3>
+                </div>
+                <p>A <strong>Surrogate Key</strong> is a system-generated, unique identifier (usually an integer like 1, 2, 3...) assigned to each row in a dimension table. It replaces the natural "Business Key" (like Email or SSN).</p>
+                <div class="bg-solarized-base3 dark:bg-black/20 p-4 rounded border-l-4 border-solarized-violet">
+                    <h4 class="font-bold text-solarized-violet">Why use them?</h4>
+                    <ul class="list-disc list-inside text-sm mt-2 space-y-1">
+                        <li><strong>Performance:</strong> Integers join faster than strings (UUIDs/Emails).</li>
+                        <li><strong>History:</strong> Allows multiple rows for the same Business Key (essential for SCD Type 2).</li>
+                        <li><strong>Decoupling:</strong> Insulates the warehouse from changes in source system IDs.</li>
+                    </ul>
+                </div>
+
+                <!-- Python Lab -->
+                <div class="bg-solarized-base3 dark:bg-solarized-base03 rounded border border-solarized-base1/30 mt-6 p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold text-solarized-blue uppercase tracking-wider">Python Lab: Surrogate Key Generation</span>
+                        <div class="flex gap-2">
+                            <button onclick="runPython('sk')" class="bg-solarized-green text-white text-xs px-3 py-1 rounded hover:bg-opacity-80"><i class="fas fa-play mr-1"></i>Run</button>
+                            <button onclick="clearPython('sk')" class="bg-solarized-red text-white text-xs px-3 py-1 rounded hover:bg-opacity-80"><i class="fas fa-trash mr-1"></i>Clear</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div class="relative">
+                            <div class="absolute top-0 left-0 bg-solarized-base2 dark:bg-solarized-base02 text-xs px-2 py-1 rounded-br">code.py</div>
+                            <textarea id="code-sk" readonly class="code-editor w-full h-48 bg-solarized-base2 dark:bg-solarized-base02 text-solarized-base00 dark:text-solarized-base0 p-4 pt-8 text-xs rounded border-none focus:ring-0 resize-none">
+def insert_with_sk(dimension_table, business_data):
+    new_sk = len(dimension_table) + 1
+    print(f"Generating SK: {new_sk} for User {business_data['email']}")
+    record = {'surrogate_key': new_sk, 'business_key': business_data['email'], 'name': business_data['name']}
+    dimension_table.append(record)
+    return dimension_table
+
+dim_customers = [{'surrogate_key': 1, 'business_key': 'a@test.com', 'name': 'Alice'}, {'surrogate_key': 2, 'business_key': 'b@test.com', 'name': 'Bob'}]
+insert_with_sk(dim_customers, {'email': 'c@test.com', 'name': 'Charlie'})
+                            </textarea>
+                        </div>
+                        <div class="relative">
+                            <div class="absolute top-0 left-0 bg-black text-green-400 text-xs px-2 py-1 rounded-br">terminal</div>
+                            <div id="console-sk" class="w-full h-48 bg-black text-green-400 p-4 pt-8 text-xs rounded font-mono overflow-y-auto">> Ready to run...</div>
+                        </div>
+                    </div>
+                    <div id="viz-sk" class="mt-4 min-h-[100px] bg-white dark:bg-black/20 rounded flex flex-col items-center justify-center border border-dashed border-solarized-base1 transition-all p-4">
+                        <span class="text-xs text-solarized-base1 italic">Visualization will appear here upon running code...</span>
+                    </div>
+                </div>
+
+                <!-- Quiz -->
+                <div class="mt-8 border-t border-solarized-base1/20 pt-6">
+                    <h4 class="text-lg font-bold text-solarized-violet mb-4"><i class="fas fa-question-circle mr-2"></i>Final Quiz</h4>
+                    <div class="bg-solarized-base2 dark:bg-solarized-base02 p-4 rounded-lg">
+                        <p class="font-semibold mb-3">Which key type allows us to track history for a specific customer in an SCD Type 2 dimension?</p>
+                        <div class="flex flex-col gap-2">
+                            <button onclick="checkAnswer(this, false)" class="text-left px-4 py-2 bg-white dark:bg-solarized-base03 rounded hover:bg-solarized-base3 transition border border-transparent">A) Natural Key (SSN/Email)</button>
+                            <button onclick="checkAnswer(this, true)" class="text-left px-4 py-2 bg-white dark:bg-solarized-base03 rounded hover:bg-solarized-base3 transition border border-transparent">B) Surrogate Key (System ID)</button>
+                            <button onclick="checkAnswer(this, false)" class="text-left px-4 py-2 bg-white dark:bg-solarized-base03 rounded hover:bg-solarized-base3 transition border border-transparent">C) Foreign Key</button>
+                        </div>
+                        <div class="mt-3 hidden feedback text-sm font-bold"></div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <h5 class="text-sm font-bold uppercase text-solarized-base1 mb-2">Links</h5>
+                    <ul class="text-xs space-y-1">
+                         <li><a href="https://www.ewsolutions.com/performance-benefits-surrogate-keys-dimensional-models/" target="_blank" rel="noopener noreferrer">Performance Benefits of Surrogate Keys</a></li>
+                         <li><a href="https://www.getdbt.com/blog/guide-to-surrogate-key" target="_blank" rel="noopener noreferrer">dbt Guide to Surrogate Keys</a></li>
+                         <li><a href="https://stackoverflow.com/questions/61524597/what-will-be-benefit-of-surrogate-key-in-data-warehosue-layer" target="_blank" rel="noopener noreferrer">StackOverflow Discussion</a></li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Key Terms -->
+            <section id="section-summary" class="tab-content hidden max-w-4xl mx-auto">
+                 <div class="border-b border-solarized-base1/20 pb-4 mb-4">
+                    <h2 class="text-2xl font-bold text-solarized-green">Key Terms Summary (Hover to Reveal)</h2>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <!-- Term 1 -->
+                    <div class="perspective-1000 h-24 group">
+                        <div class="relative w-full h-full text-center transition-transform duration-500 transform-style-3d group-hover:rotate-y-180 shadow-md rounded">
+                            <div class="absolute w-full h-full backface-hidden bg-white dark:bg-solarized-base03 flex items-center justify-center rounded"><span class="font-bold text-solarized-blue">Fact Table</span></div>
+                            <div class="absolute w-full h-full backface-hidden bg-solarized-blue text-white rotate-y-180 flex items-center justify-center rounded p-2 text-xs">Central table containing quantitative metrics (e.g., Sales Amount).</div>
+                        </div>
+                    </div>
+                    <!-- Term 2 -->
+                    <div class="perspective-1000 h-24 group">
+                        <div class="relative w-full h-full text-center transition-transform duration-500 transform-style-3d group-hover:rotate-y-180 shadow-md rounded">
+                            <div class="absolute w-full h-full backface-hidden bg-white dark:bg-solarized-base03 flex items-center justify-center rounded"><span class="font-bold text-solarized-blue">Dimension Table</span></div>
+                            <div class="absolute w-full h-full backface-hidden bg-solarized-blue text-white rotate-y-180 flex items-center justify-center rounded p-2 text-xs">Table containing descriptive attributes (e.g., Product Name).</div>
+                        </div>
+                    </div>
+                    <!-- Term 3 -->
+                    <div class="perspective-1000 h-24 group">
+                        <div class="relative w-full h-full text-center transition-transform duration-500 transform-style-3d group-hover:rotate-y-180 shadow-md rounded">
+                            <div class="absolute w-full h-full backface-hidden bg-white dark:bg-solarized-base03 flex items-center justify-center rounded"><span class="font-bold text-solarized-green">Normalization</span></div>
+                            <div class="absolute w-full h-full backface-hidden bg-solarized-green text-white rotate-y-180 flex items-center justify-center rounded p-2 text-xs">Reducing data redundancy by organizing data into related tables (OLTP).</div>
+                        </div>
+                    </div>
+                    <!-- Term 4 -->
+                    <div class="perspective-1000 h-24 group">
+                        <div class="relative w-full h-full text-center transition-transform duration-500 transform-style-3d group-hover:rotate-y-180 shadow-md rounded">
+                            <div class="absolute w-full h-full backface-hidden bg-white dark:bg-solarized-base03 flex items-center justify-center rounded"><span class="font-bold text-solarized-green">SCD Type 2</span></div>
+                            <div class="absolute w-full h-full backface-hidden bg-solarized-green text-white rotate-y-180 flex items-center justify-center rounded p-2 text-xs">Tracking history by adding a new row for every update.</div>
+                        </div>
+                    </div>
+                    <!-- Term 5 -->
+                    <div class="perspective-1000 h-24 group">
+                        <div class="relative w-full h-full text-center transition-transform duration-500 transform-style-3d group-hover:rotate-y-180 shadow-md rounded">
+                            <div class="absolute w-full h-full backface-hidden bg-white dark:bg-solarized-base03 flex items-center justify-center rounded"><span class="font-bold text-solarized-violet">Surrogate Key</span></div>
+                            <div class="absolute w-full h-full backface-hidden bg-solarized-violet text-white rotate-y-180 flex items-center justify-center rounded p-2 text-xs">System-generated integer ID unique to the data warehouse.</div>
+                        </div>
+                    </div>
+                    <!-- Term 6 -->
+                    <div class="perspective-1000 h-24 group">
+                        <div class="relative w-full h-full text-center transition-transform duration-500 transform-style-3d group-hover:rotate-y-180 shadow-md rounded">
+                            <div class="absolute w-full h-full backface-hidden bg-white dark:bg-solarized-base03 flex items-center justify-center rounded"><span class="font-bold text-solarized-cyan">Snowflake Schema</span></div>
+                            <div class="absolute w-full h-full backface-hidden bg-solarized-cyan text-white rotate-y-180 flex items-center justify-center rounded p-2 text-xs">A schema where dimensions are normalized into multiple related tables.</div>
+                        </div>
+                    </div>
+                    <!-- Term 7 -->
+                    <div class="perspective-1000 h-24 group">
+                        <div class="relative w-full h-full text-center transition-transform duration-500 transform-style-3d group-hover:rotate-y-180 shadow-md rounded">
+                            <div class="absolute w-full h-full backface-hidden bg-white dark:bg-solarized-base03 flex items-center justify-center rounded"><span class="font-bold text-solarized-orange">OLAP</span></div>
+                            <div class="absolute w-full h-full backface-hidden bg-solarized-orange text-white rotate-y-180 flex items-center justify-center rounded p-2 text-xs">Online Analytical Processing (Read-heavy, complex queries).</div>
+                        </div>
+                    </div>
+                    <!-- Term 8 -->
+                    <div class="perspective-1000 h-24 group">
+                        <div class="relative w-full h-full text-center transition-transform duration-500 transform-style-3d group-hover:rotate-y-180 shadow-md rounded">
+                            <div class="absolute w-full h-full backface-hidden bg-white dark:bg-solarized-base03 flex items-center justify-center rounded"><span class="font-bold text-solarized-red">OLTP</span></div>
+                            <div class="absolute w-full h-full backface-hidden bg-solarized-red text-white rotate-y-180 flex items-center justify-center rounded p-2 text-xs">Online Transactional Processing (Write-heavy, fast transactions).</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+             <!-- Footer -->
+             <footer class="bg-stone-900 text-stone-400 py-6 mt-8 border-t border-stone-800">
+                <div class="container mx-auto text-center text-sm">
+                    <p style="display:flex; justify-content:center; align-items:center; gap:8px; margin:0;">
+                        <img src="cyber_soho.png" onerror="this.style.display='none'; this.nextElementSibling.innerHTML='&copy; 2026 Cyber.SoHo. All Rights Reserved. Educational Use Only. (Image missing)'" alt="Cyber Soho" style="height:32px;">
+                        <span>&copy; 2026 Cyber.SoHo. All Rights Reserved. Educational Use Only.</span>
+                    </p>
+                    <div class="mt-4 text-xs text-stone-600 max-w-2xl mx-auto">
+                        <p>Disclaimer:<br>
+						This content is for educational purposes only.<br>
+						The python examples provided are simulations running within the browser sandbox.<br>
+						Always verify code before running in production environments.<br>
+						External links were provided in the source material; please verify them for security before visiting.</p>
+                    </div>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Scripts for Interactivity -->
+    <script>
+        // 1. Theme Toggle Logic
+        const themeToggle = document.getElementById('theme-toggle');
+        const html = document.documentElement;
+
+        themeToggle.addEventListener('change', () => {
+            if (themeToggle.checked) {
+                html.classList.remove('light');
+                html.classList.add('dark');
+            } else {
+                html.classList.remove('dark');
+                html.classList.add('light');
+            }
+        });
+
+        // 2. Tab Logic
+        function switchTab(tabId, btn) {
+            // Hide all contents
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            
+            // Show target content
+            const target = document.getElementById(`section-${tabId}`);
+            if (target) {
+                target.classList.remove('hidden');
+            }
+
+            // Update Sidebar State
+            document.querySelectorAll('.nav-btn').forEach(b => {
+                b.classList.remove('active', 'border-solarized-magenta');
+                b.classList.add('border-transparent');
+            });
+
+            // Highlight clicked button
+            if (btn) {
+                btn.classList.add('active');
+                btn.classList.remove('border-transparent');
+                btn.classList.add('border-solarized-magenta');
+            }
+            
+            // Scroll to top
+            document.getElementById('content-area').scrollTop = 0;
+        }
+
+        // 3. Expand/Collapse Logic (Modified for Tabs)
+        function expandAll() {
+            // Show all sections stacked
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('hidden'));
+            // Reset active state on nav
+             document.querySelectorAll('.nav-btn').forEach(b => {
+                b.classList.remove('active', 'border-solarized-magenta');
+                b.classList.add('border-transparent');
+            });
+        }
+        function collapseAll() {
+            // Revert to Intro only
+            const firstBtn = document.querySelector('.nav-btn');
+            switchTab('intro', firstBtn);
+        }
+
+        // 4. Quiz Logic
+        function checkAnswer(btn, isCorrect) {
+            const parent = btn.parentElement;
+            const feedback = parent.nextElementSibling;
+            
+            // Reset styles
+            parent.querySelectorAll('button').forEach(b => {
+                b.classList.remove('bg-green-100', 'bg-red-100', 'border-green-500', 'border-red-500', 'dark:bg-green-900', 'dark:bg-red-900');
+            });
+
+            feedback.classList.remove('hidden', 'text-green-600', 'text-red-600');
+
+            if (isCorrect) {
+                btn.classList.add('bg-green-100', 'border-green-500', 'dark:bg-green-900');
+                feedback.textContent = "Correct! Great job.";
+                feedback.classList.add('text-green-600');
+            } else {
+                btn.classList.add('bg-red-100', 'border-red-500', 'dark:bg-red-900');
+                feedback.textContent = "Incorrect. Try again!";
+                feedback.classList.add('text-red-600');
+            }
+        }
+
+        // 5. Python Simulation Logic
+        function runPython(type) {
+            const consoleDiv = document.getElementById(`console-${type}`);
+            const vizDiv = document.getElementById(`viz-${type}`);
+            
+            // Clear previous
+            consoleDiv.innerHTML = '> Starting execution...<br>';
+            vizDiv.innerHTML = '<i class="fas fa-spinner fa-spin text-2xl text-solarized-blue"></i>';
+
+            if (type === 'star') {
+                simulateStarSchema(consoleDiv, vizDiv);
+            } else if (type === 'scd') {
+                simulateSCD(consoleDiv, vizDiv);
+            } else if (type === 'sk') {
+                simulateSK(consoleDiv, vizDiv);
+            } else if (type === 'models') {
+                simulateModels(consoleDiv, vizDiv);
+            } else if (type === 'norm') {
+                simulateNormalization(consoleDiv, vizDiv);
+            }
+        }
+
+        function clearPython(type) {
+            document.getElementById(`console-${type}`).innerHTML = '> Ready to run...';
+            document.getElementById(`viz-${type}`).innerHTML = '<span class="text-xs text-solarized-base1 italic">Visualization will appear here upon running code...</span>';
+        }
+
+        // 5a. Star Schema Simulation
+        async function simulateStarSchema(consoleDiv, vizDiv) {
+            const delay = ms => new Promise(res => setTimeout(res, ms));
+
+            await delay(800);
+            consoleDiv.innerHTML += '> Loading Fact Table (Sales)...<br>';
+            await delay(800);
+            consoleDiv.innerHTML += '> Loading Dimension Table (Products)...<br>';
+            await delay(800);
+            consoleDiv.innerHTML += '> Executing Merge on key "prod_id"...<br>';
+            await delay(1000);
+            consoleDiv.innerHTML += '<span class="text-white">> MERGE COMPLETE. View updated.</span><br>';
+            consoleDiv.innerHTML += `
+   date_id  prod_id  amount    name     category
+0      101        1     500  Laptop  Electronics
+1      102        2     750   Phone  Electronics
+            `;
+            
+            // Create Visualization Table
+            vizDiv.innerHTML = `
+                <table class="text-[10px] w-full text-center border-collapse">
+                    <tr class="bg-solarized-orange text-white"><th colspan="5">Star Schema Result</th></tr>
+                    <tr class="bg-solarized-base1 text-white"><th>DateID</th><th>ProdID</th><th>Amount</th><th>Name</th><th>Category</th></tr>
+                    <tr class="bg-white dark:bg-solarized-base02 border-b border-solarized-base1/20 animate-pulse"><td>101</td><td>1</td><td>$500</td><td>Laptop</td><td>Elec</td></tr>
+                    <tr class="bg-white dark:bg-solarized-base02 border-b border-solarized-base1/20 animate-pulse" style="animation-delay:0.2s"><td>102</td><td>2</td><td>$750</td><td>Phone</td><td>Elec</td></tr>
+                </table>
+            `;
+        }
+
+        // 5b. SCD Simulation
+        async function simulateSCD(consoleDiv, vizDiv) {
+            const delay = ms => new Promise(res => setTimeout(res, ms));
+
+            vizDiv.innerHTML = `
+                <div class="flex flex-col gap-2 w-full px-4">
+                    <div id="row-1" class="flex justify-between p-2 bg-green-100 dark:bg-green-900 border border-green-500 rounded text-xs transition-all duration-500">
+                        <span>ID: 1 | State: NY</span> <span class="font-bold">Active</span>
+                    </div>
+                </div>
+            `;
+            
+            await delay(1000);
+            consoleDiv.innerHTML += '> Checking Customer ID 1...<br>';
+            await delay(800);
+            consoleDiv.innerHTML += '> Change detected: State NY -> CA<br>';
+            
+            // Visual update 1: expire old
+            await delay(1000);
+            consoleDiv.innerHTML += '> Closing old record (is_active = False)...<br>';
+            const row1 = document.getElementById('row-1');
+            row1.classList.remove('bg-green-100', 'dark:bg-green-900', 'border-green-500');
+            row1.classList.add('bg-gray-200', 'dark:bg-gray-700', 'border-gray-400', 'opacity-50');
+            row1.innerHTML = '<span>ID: 1 | State: NY</span> <span class="font-bold">Inactive</span>';
+
+            // Visual update 2: insert new
+            await delay(1000);
+            consoleDiv.innerHTML += '> Inserting new record (is_active = True)...<br>';
+            const container = vizDiv.querySelector('div');
+            const newRow = document.createElement('div');
+            newRow.className = "flex justify-between p-2 bg-green-100 dark:bg-green-900 border border-green-500 rounded text-xs translate-y-4 opacity-0 transition-all duration-500";
+            newRow.innerHTML = '<span>ID: 1 | State: CA</span> <span class="font-bold">Active</span>';
+            container.appendChild(newRow);
+            
+            // Trigger animation
+            requestAnimationFrame(() => {
+                newRow.classList.remove('translate-y-4', 'opacity-0');
+            });
+
+            await delay(500);
+            consoleDiv.innerHTML += '<span class="text-white">> SCD Type 2 Update Successful.</span><br>';
+        }
+
+        // 5c. Surrogate Key Simulation
+        async function simulateSK(consoleDiv, vizDiv) {
+            const delay = ms => new Promise(res => setTimeout(res, ms));
+
+            // Init State
+            vizDiv.innerHTML = `
+                 <table class="text-[10px] w-full text-center border-collapse">
+                    <tr class="bg-solarized-violet text-white"><th>SK</th><th>BizKey</th><th>Name</th></tr>
+                    <tr class="bg-white dark:bg-solarized-base02 border-b border-solarized-base1/20"><td>1</td><td>a@test.com</td><td>Alice</td></tr>
+                    <tr class="bg-white dark:bg-solarized-base02 border-b border-solarized-base1/20"><td>2</td><td>b@test.com</td><td>Bob</td></tr>
+                </table>
+            `;
+
+            await delay(800);
+            consoleDiv.innerHTML += '> Reading Table Length: 2 records found.<br>';
+            await delay(800);
+            consoleDiv.innerHTML += '> Generating New SK (Max + 1): <b>3</b><br>';
+            await delay(800);
+            consoleDiv.innerHTML += '> Inserting "Charlie" with SK 3...<br>';
+            
+            const table = vizDiv.querySelector('table');
+            const newRow = document.createElement('tr');
+            newRow.className = "bg-green-100 dark:bg-green-900 border-b border-solarized-base1/20 animate-pulse font-bold";
+            newRow.innerHTML = '<td>3</td><td>c@test.com</td><td>Charlie</td>';
+            table.appendChild(newRow);
+
+            await delay(500);
+            consoleDiv.innerHTML += '<span class="text-white">> Insert Complete.</span><br>';
+        }
+
+        // 5d. Model Translation Simulation
+        async function simulateModels(consoleDiv, vizDiv) {
+             const delay = ms => new Promise(res => setTimeout(res, ms));
+
+             vizDiv.innerHTML = `
+                <div class="font-mono text-[10px] text-solarized-base00 dark:text-solarized-base0 text-left bg-white dark:bg-solarized-base03 p-2 rounded shadow w-full h-full overflow-hidden">
+                    <span class="text-solarized-blue font-bold">CREATE TABLE</span> Users (<br>
+                </div>
+            `;
+            const codeContainer = vizDiv.querySelector('div');
+
+            await delay(800);
+            consoleDiv.innerHTML += '> Analyzing Logical Model...<br>';
+            await delay(500);
+            consoleDiv.innerHTML += '> Found Field: "id" (int)<br>';
+            consoleDiv.innerHTML += '> Mapping "int" -> "INTEGER"<br>';
+            codeContainer.innerHTML += '&nbsp;&nbsp;&nbsp;&nbsp;id <span class="text-solarized-orange">INTEGER</span>,<br>';
+
+            await delay(800);
+            consoleDiv.innerHTML += '> Found Field: "username" (string)<br>';
+            consoleDiv.innerHTML += '> Mapping "string" -> "VARCHAR(255)"<br>';
+            codeContainer.innerHTML += '&nbsp;&nbsp;&nbsp;&nbsp;username <span class="text-solarized-orange">VARCHAR(255)</span>,<br>';
+
+            await delay(800);
+            consoleDiv.innerHTML += '> Found Field: "joined" (date)<br>';
+            consoleDiv.innerHTML += '> Mapping "date" -> "DATETIME"<br>';
+            codeContainer.innerHTML += '&nbsp;&nbsp;&nbsp;&nbsp;joined <span class="text-solarized-orange">DATETIME</span><br>);';
+
+            await delay(500);
+            consoleDiv.innerHTML += '<span class="text-white">> DDL Generation Complete.</span><br>';
+        }
+
+        // 5e. Normalization Logic
+        async function simulateNormalization(consoleDiv, vizDiv) {
+            const delay = ms => new Promise(res => setTimeout(res, ms));
+
+            await delay(800);
+            consoleDiv.innerHTML += '> Reading Table: Users (2 rows)...<br>';
+            await delay(800);
+            consoleDiv.innerHTML += '> Reading Table: Orders (3 rows)...<br>';
+            await delay(800);
+            consoleDiv.innerHTML += '> Joining Tables on "user_id"...<br>';
+            
+            await delay(1000);
+            consoleDiv.innerHTML += '<span class="text-white">> DENORMALIZATION COMPLETE.</span><br>';
+            consoleDiv.innerHTML += `
+   order_id  amount   name city
+0       101      50  Alice   NY
+1       103      25  Alice   NY
+2       102     100    Bob   LA
+            `;
+             // Create Visualization Table
+            vizDiv.innerHTML = `
+                <table class="text-[10px] w-full text-center border-collapse animate-pulse">
+                    <tr class="bg-solarized-red text-white"><th colspan="4">Denormalized Table</th></tr>
+                    <tr class="bg-solarized-base1 text-white"><th>OrderID</th><th>Amount</th><th>Name</th><th>City</th></tr>
+                    <tr class="bg-white dark:bg-solarized-base02 border-b border-solarized-base1/20"><td>101</td><td>50</td><td>Alice</td><td>NY</td></tr>
+                    <tr class="bg-white dark:bg-solarized-base02 border-b border-solarized-base1/20"><td>103</td><td>25</td><td>Alice</td><td>NY</td></tr>
+                    <tr class="bg-white dark:bg-solarized-base02 border-b border-solarized-base1/20"><td>102</td><td>100</td><td>Bob</td><td>LA</td></tr>
+                </table>
+            `;
+        }
+    </script>
+</body>
+</html>
